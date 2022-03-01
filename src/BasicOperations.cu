@@ -6,7 +6,7 @@
 using namespace std;
 
 // Number of threads in each thread block
-int blockSize = 1024;
+static const int blockSize = 1024;
  
 __global__ void vecAddDoubleIntGPU(double *a, int *b, double *c, int n)
 {
@@ -300,3 +300,84 @@ void initVecDoubleCPU(double* a, double x, int n)
       }
 }
 
+__global__ void sumCommMultiBlockInt(const int *gArr, int n, int *gOut) 
+{
+      int thIdx = threadIdx.x;
+      int gthIdx = thIdx + blockIdx.x*blockSize;
+      const int gridSize = blockSize*gridDim.x;
+      int sum = 0;
+      for (int i = gthIdx; i < n; i += gridSize)
+            sum += gArr[i];
+      __shared__ int shArr[blockSize];
+      shArr[thIdx] = sum;
+      __syncthreads();
+      for (int size = blockSize/2; size>0; size/=2) { //uniform
+            if (thIdx<size)
+                  shArr[thIdx] += shArr[thIdx+size];
+            __syncthreads();
+      }
+      if (thIdx == 0)
+            gOut[blockIdx.x] = shArr[0];
+}
+
+__global__ void sumCommMultiBlockDouble(const double *gArr, int n, double *gOut) 
+{
+      int thIdx = threadIdx.x;
+      int gthIdx = thIdx + blockIdx.x*blockSize;
+      const int gridSize = blockSize*gridDim.x;
+      double sum = 0;
+      for (int i = gthIdx; i < n; i += gridSize)
+            sum += gArr[i];
+      __shared__ double shArr[blockSize];
+      shArr[thIdx] = sum;
+      __syncthreads();
+      for (int size = blockSize/2; size>0; size/=2) { //uniform
+            if (thIdx<size)
+                  shArr[thIdx] += shArr[thIdx+size];
+            __syncthreads();
+      }
+      if (thIdx == 0)
+            gOut[blockIdx.x] = shArr[0];
+}
+
+int vecSumInt(int* arr, int n) 
+{
+      int* dev_arr;
+      int gridSize = (int)ceil((float)n/blockSize);
+      cudaMalloc(&dev_arr, n * sizeof(int));
+      cudaMemcpy(dev_arr, arr, n * sizeof(int), cudaMemcpyHostToDevice);
+
+      int out;
+      int* dev_out;
+      cudaMalloc(&dev_out, sizeof(int)*gridSize);
+
+      sumCommMultiBlockInt<<<gridSize, blockSize>>>(dev_arr, n, dev_out);
+      sumCommMultiBlockInt<<<1, blockSize>>>(dev_out, gridSize, dev_out);
+      cudaDeviceSynchronize();
+
+      cudaMemcpy(&out, dev_out, sizeof(int), cudaMemcpyDeviceToHost);
+      cudaFree(dev_arr);
+      cudaFree(dev_out);
+      return out;
+}
+
+double vecSumDouble(double* arr, int n) 
+{
+      double* dev_arr;
+      int gridSize = (int)ceil((float)n/blockSize);
+      cudaMalloc(&dev_arr, n * sizeof(double));
+      cudaMemcpy(dev_arr, arr, n * sizeof(double), cudaMemcpyHostToDevice);
+
+      double out;
+      double* dev_out;
+      cudaMalloc(&dev_out, sizeof(double)*gridSize);
+
+      sumCommMultiBlockDouble<<<gridSize, blockSize>>>(dev_arr, n, dev_out);
+      sumCommMultiBlockDouble<<<1, blockSize>>>(dev_out, gridSize, dev_out);
+      cudaDeviceSynchronize();
+
+      cudaMemcpy(&out, dev_out, sizeof(double), cudaMemcpyDeviceToHost);
+      cudaFree(dev_arr);
+      cudaFree(dev_out);
+      return out;
+}

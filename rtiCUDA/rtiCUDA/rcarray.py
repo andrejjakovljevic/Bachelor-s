@@ -109,6 +109,15 @@ class rcarray:
             d["type"]=self.type
             messageSender.sendMessage(d)
 
+def sum(a : rcarray):
+    d = dict()
+    if (len(a.dims)==1):
+        d["operation"]="sumv"
+        d["type"]=a.type
+        d["length"]=a.dims[0]
+        d["id"]=a.id
+        resp = messageSender.sendMessage(d)
+        return resp["val"]
 
 def makeRcArray(type : string, dims : list, num : int) -> rcarray:
     d = dict()

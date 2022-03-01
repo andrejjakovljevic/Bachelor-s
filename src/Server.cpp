@@ -343,7 +343,39 @@ void do_calculations(char* buffer, int new_socket)
         }
         send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
     }
+    else if (nesto["operation"]=="sumv")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        BasicArray* a = st->getArray(nesto["id"]);
+        if (a==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        int length = nesto["length"];
+        json j;
+        j["message"]="OK";
+        if (nesto["type"]=="int")
+        {
+            int res = vecSumInt(Converter::voidToIntArray(a->getData()), length);
+            j["val"]=res;
+        }
+        else if (nesto["type"]=="double")
+        {
+            double res = vecSumDouble(Converter::voidToDoubleArray(a->getData()),length);
+            j["val"]=res;
+        }
+        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
+    }
 }
+
+char buffer[1025];  //data buffer of 1K 
 
 void network_communication()
 {
@@ -353,7 +385,6 @@ void network_communication()
     int max_sd;  
     struct sockaddr_in address;  
          
-    char buffer[1025];  //data buffer of 1K 
          
     //set of socket descriptors 
     fd_set readfds;  

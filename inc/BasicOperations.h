@@ -13,5 +13,7 @@ extern void vecAddDoubleIntCPU(double *a, int *b, double *c, int n);
 extern void vecMulDoubleIntCPU(double *a, int *b, double *c, int n);
 extern void vecSubDoubleIntCPU(double *a, int *b, double *c, int n);
 extern void vecSubIntDoubleCPU(int *a, double *b, double *c, int n);
+extern int vecSumInt(int* arr, int n);
+extern double vecSumDouble(double* arr, int n);
 
 #endif

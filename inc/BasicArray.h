@@ -2,6 +2,7 @@
 #define BASIC_ARRAY_H
 #include "string.h"
 #include "BasicOperations.h"
+#include <cstdlib>
 
 typedef enum {INT, DOUBLE} Type; // 0 - INS, 1 - DOUBLE
 
@@ -49,6 +50,11 @@ public:
     void* getData()
     {
         return data;
+    }
+
+    ~BasicArray()
+    {
+        free(data);
     }
 };
 

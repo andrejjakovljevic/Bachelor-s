@@ -20,3 +20,21 @@ SymbolTable::SymbolTable(string user)
 {
     this->user=user;
 }
+
+SymbolTable::~SymbolTable()
+{
+    for (auto& u : this->mapa)
+    {
+        if (u.second!=nullptr) delete u.second;
+    }
+}
+
+void SymbolTable::removeArray(int sid)
+{
+    if (mapa.find(sid)!=mapa.end())
+    {
+        delete mapa[sid];
+        mapa[sid]=nullptr;
+    }
+
+}

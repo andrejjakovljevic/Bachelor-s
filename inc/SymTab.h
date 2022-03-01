@@ -20,6 +20,10 @@ public:
 
     BasicArray* getArray(int sid);
 
+    void removeArray(int sid);
+
+    ~SymbolTable();
+
 };
 
 #endif

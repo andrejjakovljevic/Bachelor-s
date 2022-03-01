@@ -43,6 +43,14 @@ void test()
     cout << endl;
 }
 
+void send_error(string errMes, int new_socket)
+{
+    json j;
+    j["message"]="error";
+    j["text"]=errMes;
+    send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
+}
+
 void do_calculations(char* buffer, int new_socket)
 {
     auto nesto = json::parse(buffer);
@@ -55,8 +63,7 @@ void do_calculations(char* buffer, int new_socket)
         SymbolTable* st = users->getSymTable(nesto["userName"]);
         if (st==nullptr)
         {
-            // OVDE IDE GRESKA
-            cout << "greska" << endl;
+            send_error("UserName does not exist",new_socket);
             return;
         }
         int type;
@@ -89,8 +96,7 @@ void do_calculations(char* buffer, int new_socket)
         SymbolTable* st = users->getSymTable(nesto["userName"]);
         if (st==nullptr)
         {
-            // OVDE IDE GRESKA
-            cout << "greska" << endl;
+            send_error("UserName does not exist",new_socket);
             return;
         }
         int dim = 1;
@@ -112,8 +118,7 @@ void do_calculations(char* buffer, int new_socket)
         BasicArray* b = st->getArray(nesto["id2"]);
         if (a==nullptr || b==nullptr)
         {
-            // OVDE IDE GRESKA
-            cout << "greska" << endl;
+            send_error("Array does not exist",new_socket);
             return;
         }
         if (a->getType()==INT && b->getType()==INT)
@@ -189,15 +194,13 @@ void do_calculations(char* buffer, int new_socket)
         SymbolTable* st = users->getSymTable(nesto["userName"]);
         if (st==nullptr)
         {
-            // OVDE IDE GRESKA
-            cout << "greska" << endl;
+            send_error("UserName does not exist",new_socket);
             return;
         }
         BasicArray* a = st->getArray(nesto["id"]);
         if (a==nullptr)
         {
-            // OVDE IDE GRESKA
-            cout << "greska" << endl;
+            send_error("Array does not exist",new_socket);
             return;
         }
         json j;
@@ -223,6 +226,26 @@ void do_calculations(char* buffer, int new_socket)
             j["message"]="OK";
             j["array"]=ret;
         }
+        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
+    }
+    else if (nesto["operation"]=="delete")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        BasicArray* a = st->getArray(nesto["id"]);
+        if (a==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        st->removeArray(nesto["id"]);
+        json j;
+        j["message"]="OK";
         send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
     }
 }

@@ -57,7 +57,6 @@ void do_calculations(char* buffer, int new_socket)
     cout << nesto["operation"] << endl;
     if (nesto["operation"]=="createv")
     {
-        int k = nesto["num"];
         int length = nesto["length"];
         UserDictionary* users = UserDictionary::getInstance();
         SymbolTable* st = users->getSymTable(nesto["userName"]);
@@ -72,12 +71,14 @@ void do_calculations(char* buffer, int new_socket)
         void* d;
         if (nesto["type"]=="int")
         {   
+            int k = nesto["num"];
             type=0;
             d = malloc(sizeof(int)*length);
             initVecIntCPU((int*)d, k, length);
         }
         else if (nesto["type"]=="double")
         {
+            double k = nesto["num"];
             type=1;
             d = malloc(sizeof(double)*length);
             initVecDoubleCPU((double*)d, k, length);
@@ -248,6 +249,100 @@ void do_calculations(char* buffer, int new_socket)
         j["message"]="OK";
         send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
     }
+    else if (nesto["operation"]=="connect")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st!=nullptr)
+        {
+            send_error("UserName already exists",new_socket);
+            return;
+        }
+        users->addUser(nesto["userName"]);
+        json j;
+        j["message"]="OK";
+        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
+    }
+    else if (nesto["operation"]=="disconnect")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName already exists",new_socket);
+            return;
+        }
+        users->deleteUser(nesto["userName"]);
+        json j;
+        j["message"]="OK";
+        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
+    }
+    else if (nesto["operation"]=="setv")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        BasicArray* a = st->getArray(nesto["id"]);
+        if (a==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        int pos = nesto["pos"];
+        string type = nesto["type"];
+        if (type=="int")
+        {
+            int x = nesto["val"];
+            int* d = Converter::voidToIntArray(a->getData());
+            d[pos]=x;
+        }
+        else if (type=="double")
+        {
+            double x = nesto["val"];
+            double* d = Converter::voidToDoubleArray(a->getData());
+            d[pos]=x;
+        }
+        json j;
+        j["message"]="OK";
+        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
+    }
+    else if (nesto["operation"]=="getv")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        BasicArray* a = st->getArray(nesto["id"]);
+        if (a==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        int pos = nesto["pos"];
+        string type = nesto["type"];
+        json j;
+        j["message"]="OK";
+        if (type=="int")
+        {
+            int* d = Converter::voidToIntArray(a->getData());
+            int x = d[pos];
+            j["val"]=x;
+        }
+        else if (type=="double")
+        {
+            double* d = Converter::voidToDoubleArray(a->getData());
+            double x = d[pos];
+            j["val"]=x;
+        }
+        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
+    }
 }
 
 void network_communication()
@@ -409,7 +504,5 @@ void network_communication()
 
 int main()
 {
-    UserDictionary* users = UserDictionary::getInstance();
-    users->addUser("andrej");
     network_communication();
 }

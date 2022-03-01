@@ -34,7 +34,7 @@ void SymbolTable::removeArray(int sid)
     if (mapa.find(sid)!=mapa.end())
     {
         delete mapa[sid];
-        mapa[sid]=nullptr;
+        mapa.erase(sid);
     }
 
 }

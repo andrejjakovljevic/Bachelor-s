@@ -1,5 +1,4 @@
 from array import array
-from email.policy import strict
 import string
 from rtiCUDA import messageSender
 
@@ -19,10 +18,9 @@ class rcarray:
                 raise Exception("Arrays must be of same dimensions")
             d["operation"]="binopvv"
             t : string = "int"
-            if (self.type=="double" or self.type=="double"):
+            if (self.type=="double" or o.type=="double"):
                 t="double"
             d["op"]="+"
-            d["userName"]="andrej"
             d["length"]=o.dims[0]
             d["id1"]=self.id
             d["id2"]=o.id
@@ -39,10 +37,9 @@ class rcarray:
                 raise Exception("Arrays must be of same dimensions")
             d["operation"]="binopvv"
             t : string = "int"
-            if (self.type=="double" or self.type=="double"):
+            if (self.type=="double" or o.type=="double"):
                 t="double"
             d["op"]="-"
-            d["userName"]="andrej"
             d["length"]=o.dims[0]
             d["id1"]=self.id
             d["id2"]=o.id
@@ -59,10 +56,9 @@ class rcarray:
                 raise Exception("Arrays must be of same dimensions")
             d["operation"]="binopvv"
             t : string = "int"
-            if (self.type=="double" or self.type=="double"):
+            if (self.type=="double" or o.type=="double"):
                 t="double"
             d["op"]="*"
-            d["userName"]="andrej"
             d["length"]=o.dims[0]
             d["id1"]=self.id
             d["id2"]=o.id
@@ -78,7 +74,6 @@ class rcarray:
         if (len(self.dims)==1):
             d["operation"]="print"
             d["length"]=self.dims[0]
-            d["userName"]="andrej"
             d["type"]=self.type
             d["id"]=self.id
             resp = messageSender.sendMessage(d)
@@ -87,9 +82,32 @@ class rcarray:
     def __del__(self):
         d=dict()
         d["operation"]="delete"
-        d["userName"]="andrej"
         d["id"]=self.id
         resp = messageSender.sendMessage(d)
+
+    def __getitem__(self, key):
+        d=dict()
+        if (len(self.dims)==1):
+            d["operation"]="getv"
+            if (key>=self.dims[0]):
+                raise Exception("Index out of range")
+            d["pos"]=key
+            d["id"]=self.id
+            d["type"]=self.type
+            resp = messageSender.sendMessage(d)
+            return resp["val"]
+    
+    def __setitem__(self, key, val):
+        d=dict()
+        if (len(self.dims)==1):
+            d["operation"]="setv"
+            if (key>=self.dims[0]):
+                raise Exception("Index out of range")
+            d["pos"]=key
+            d["id"]=self.id
+            d["val"]=val
+            d["type"]=self.type
+            messageSender.sendMessage(d)
 
 
 def makeRcArray(type : string, dims : list, num : int) -> rcarray:
@@ -97,7 +115,6 @@ def makeRcArray(type : string, dims : list, num : int) -> rcarray:
     if (len(dims)==1):
         d["operation"]="createv"
         d["type"]=type
-        d["userName"]="andrej"
         d["length"]=dims[0]
         d["num"]=num
         resp = messageSender.sendMessage(d)

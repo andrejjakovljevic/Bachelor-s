@@ -16,7 +16,7 @@ void UserDictionary::deleteUser(string userName)
 {
     if (users.find(userName)==users.end())
     {
-        // OVDE IDU GRESKE
+        return;
     }
     SymbolTable* st = users[userName];
     delete st;

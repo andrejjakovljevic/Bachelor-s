@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <iostream>
 #include "BasicOperations.h"
+using namespace std;
 
 // Number of threads in each thread block
 int blockSize = 1024;
@@ -11,7 +13,7 @@ __global__ void vecAddDoubleIntGPU(double *a, int *b, double *c, int n)
       int id = blockIdx.x*blockDim.x+threadIdx.x;
  
       if (id < n)
-            c[id] = a[id] + b[id];
+            c[id] = a[id] + (double)b[id];
 }
 
 __global__ void vecMulDoubleIntGPU(double *a, int *b, double *c, int n)
@@ -290,10 +292,11 @@ void initVecIntCPU(int *a, int x, int n)
       }
 }
 
-extern void initVecDoubleCPU(double* a, double x, int n)
+void initVecDoubleCPU(double* a, double x, int n)
 {
       for (int i=0;i<n;i++)
       {
             a[i]=x;
       }
 }
+

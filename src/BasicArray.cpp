@@ -24,7 +24,7 @@ BasicArray::BasicArray(int type, int* dims, int dim, void* data)
         this->dims[i]=dims[i];
     }
     this->data=data;
-    if (size()+trensize< (long long)3*1024*1024*1024)
+    if (size()+trensize<(long long)3*1024*1024*1024)
     {
         copy_front(data,d_data,size());
     }

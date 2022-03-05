@@ -21,6 +21,7 @@ extern void copy_front(void* data, void*& d_data, int size);
 extern void g_alloc(void*& d_data, int size);
 extern void just_return(void* data, void*& d_data, int size);
 extern void just_front(void* data, void*& d_data, int size);
+extern void dot_prodIntCPU(int* arr1, int* arr2, int* c, int n);
 
 extern int trensize;
 #endif

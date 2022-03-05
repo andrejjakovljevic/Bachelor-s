@@ -17,32 +17,6 @@
 using namespace std;
 using json = nlohmann::json;
 
-void test()
-{
-    UserDictionary* users = UserDictionary::getInstance();
-    users->addUser("andrej");
-    SymbolTable* symTab = users->getSymTable("andrej");
-    int type = 0;
-    int dim = 1;
-    int d[3] = {1,2,3};
-    void* data = (void*)d;
-    int dims[1] = {3};
-    BasicArray* ba1 = new BasicArray(type,dims,dim,data);
-    int d2[3] = {3,4,5};
-    BasicArray* ba2 = new BasicArray(type, dims, dim, (void*)d2);
-    int id1 = symTab->addArray(ba1);
-    int id2 = symTab->addArray(ba2);
-    BasicArray* t1 = symTab->getArray(id1);
-    BasicArray* t2 = symTab->getArray(id2);
-    int* c = (int*)malloc(3*sizeof(int));
-    vecAddIntCPU(Converter::voidToIntArray(t1->getData()),Converter::voidToIntArray(t2->getData()),c,3);
-    for (int i=0;i<3;i++)
-    {
-        cout << c[i] << " ";
-    }
-    cout << endl;
-}
-
 void send_error(string errMes, int new_socket)
 {
     json j;
@@ -87,7 +61,6 @@ void do_calculations(char* buffer, int new_socket)
         BasicArray* ba = new BasicArray(type, dims, 1, d);
         int id = st->addArray(ba);
         just_front(ba->data,ba->d_data,ba->size());
-        BasicArray* a = st->getArray(0);
         j["message"]="OK";
         j["id"]=id;
     }
@@ -355,17 +328,158 @@ void do_calculations(char* buffer, int new_socket)
         }
         int length = nesto["length"];
         j["message"]="OK";
-        just_return(a->data,a->d_data,a->size());
         if (nesto["type"]=="int")
         {
-            int res = vecSumInt(Converter::voidToIntArray(a->getData()), length);
+            int res = vecSumInt((int*)a->d_data, length);
             j["val"]=res;
         }
         else if (nesto["type"]=="double")
         {
-            double res = vecSumDouble(Converter::voidToDoubleArray(a->getData()),length);
+            double res = vecSumDouble((double*)a->d_data,length);
             j["val"]=res;
         }
+    }
+    else if (nesto["operation"]=="create_from_numpy_v")
+    {
+        int length = nesto["length"];
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        int type;
+        int dim = 1;
+        int dims[1] = {length};
+        void* d;
+        if (nesto["type"]=="int")
+        {   
+            type=0;
+            d = malloc(sizeof(int)*length);
+            int* data = Converter::voidToIntArray(d);
+            for (int i=0;i<length;i++)
+            {
+                data[i]=nesto["array"][i];
+            }
+        }
+        else if (nesto["type"]=="double")
+        {
+            type=1;
+            d = malloc(sizeof(double)*length);
+            double* data = Converter::voidToDoubleArray(d);
+            for (int i=0;i<length;i++)
+            {
+                data[i]=nesto["array"][i];
+            }
+        }
+        BasicArray* ba = new BasicArray(type, dims, 1, d);
+        int id = st->addArray(ba);
+        just_front(ba->data,ba->d_data,ba->size());
+        j["message"]="OK";
+        j["id"]=id;
+    }
+    else if (nesto["operation"]=="dotmm")
+    {
+        int length = nesto["length"];
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        int dim = 1;
+        int dims[1] = {length};
+        int type;
+        void* d;
+        int k = sqrt(length);
+        if (k*k!=length)
+        {
+            send_error("Dimensions of the matrix are not ok!",new_socket);
+            return;
+        }
+        if (nesto["type"]=="int")
+        {   
+            type=0;
+            d = malloc(sizeof(int)*length);
+        }
+        else if (nesto["type"]=="double")
+        {
+            type=1;
+            d = malloc(sizeof(double)*length);
+        }
+        BasicArray* a = st->getArray(nesto["id1"]);
+        BasicArray* b = st->getArray(nesto["id2"]);
+        if (a==nullptr || b==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        BasicArray* ba = new BasicArray(type, dims, 1, d);
+        if (a->getType()==INT && b->getType()==INT)
+        {
+            dot_prodIntCPU((int*)a->d_data,(int*)b->d_data,(int*)ba->d_data,k);
+        }
+        int id = st->addArray(ba);
+        j["message"]="OK";
+        j["id"]=id;
+    }
+    if (nesto["operation"]=="createm")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        int length = nesto["length"];
+        int dim = nesto["dim"];
+        int type;
+        void* d;
+        if (nesto["type"]=="int")
+        {   
+            type=0;
+            d = malloc(sizeof(int)*length*dim);
+            int* data = (int*)d;
+            int s=0;
+            for (int i=0;i<length;i++)
+            {
+                BasicArray* ba = st->getArray(nesto["ids"][i]);
+                just_return(ba->data,ba->d_data,ba->size());
+                int* pom_data = (int*)ba->data;
+                for (int j=0;j<ba->dims[0];j++)
+                {
+                    data[s]=pom_data[j];
+                    s++;
+                }
+            }
+        }
+        else if (nesto["type"]=="double")
+        {
+            type=1;
+            d = malloc(sizeof(double)*length*dim);
+            double* data = (double*)d;
+            int s=0;
+            for (int i=0;i<length;i++)
+            {
+                BasicArray* ba = st->getArray(nesto["ids"][i]);
+                just_return(ba->data,ba->d_data,ba->size());
+                double* pom_data = (double*)ba->data;
+                for (int j=0;j<ba->dims[i];j++)
+                {
+                    data[s]=pom_data[j];
+                    s++;
+                }
+            }
+        }
+        int dims[1]={dim*dim};
+        BasicArray* ba = new BasicArray(type, dims, 1, d);
+        int id = st->addArray(ba);
+        just_front(ba->data,ba->d_data,ba->size());
+        j["message"]="OK";
+        j["id"]=id;
     }
     if (!check_error())
     {
@@ -377,7 +491,7 @@ void do_calculations(char* buffer, int new_socket)
     }
 }
 
-char buffer[1025];  //data buffer of 1K 
+char buffer[100250];  //data buffer of 100K 
 
 void network_communication()
 {
@@ -436,7 +550,7 @@ void network_communication()
          
     //accept the incoming connection 
     addrlen = sizeof(address);  
-    puts("Waiting for connections ...");  
+    printf("Waiting for connections ...");  
          
     while(1)  
     {  
@@ -509,7 +623,7 @@ void network_communication()
             {  
                 //Check if it was for closing , and also read the 
                 //incoming message 
-                if ((valread = read( sd , buffer, 1024)) == 0)  
+                if ((valread = read( sd , buffer, 100250)) == 0)  
                 {  
                     //Somebody disconnected , get his details and print 
                     getpeername(sd , (struct sockaddr*)&address , \

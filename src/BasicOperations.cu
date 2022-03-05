@@ -7,6 +7,7 @@ using namespace std;
 
 // Number of threads in each thread block
 static const int blockSize = 1024;
+static const int min_blk = 32;
 //static const long long max_size = (long long)3*1024*1024*1024;
 int trensize = 0;
 
@@ -193,6 +194,40 @@ void initVecDoubleCPU(double* a, double x, int n)
       }
 }
 
+__global__ void dotIntGPU(int* a, int* b, int* c, int dim) 
+{
+      int i,j;
+      float temp = 0;
+
+      __shared__ int Left_shared_t [min_blk][min_blk];
+      __shared__ int Right_shared_t[min_blk][min_blk];
+
+      // Row i of matrix left
+      int row = blockIdx.y * blockDim.y + threadIdx.y;
+      int col = blockIdx.x * blockDim.x + threadIdx.x;
+      if (row>=dim || col>=dim) return;
+
+      for (int tileNUM = 0; tileNUM < gridDim.x; tileNUM++) 
+      {
+
+            j = tileNUM * min_blk + threadIdx.x;
+            i = tileNUM * min_blk + threadIdx.y;
+
+            Left_shared_t[threadIdx.y][threadIdx.x] = a[row * dim + j];// Coalesced access
+
+            Right_shared_t[threadIdx.y][threadIdx.x] = b[i * dim + col]; // Coalesced access
+            __syncthreads();
+
+            // Accumulate one tile of res from tiles of left and right in shared mem
+            for (int k = 0; k < min_blk; k++) {
+
+                  temp += Left_shared_t[threadIdx.y][k] * Right_shared_t[k][threadIdx.x]; //no shared memory bank conflict
+            }
+            __syncthreads();
+      }
+      c[row * dim + col] = temp;
+}
+
 __global__ void sumCommMultiBlockInt(const int *gArr, int n, int *gOut) 
 {
       int thIdx = threadIdx.x;
@@ -233,12 +268,9 @@ __global__ void sumCommMultiBlockDouble(const double *gArr, int n, double *gOut)
             gOut[blockIdx.x] = shArr[0];
 }
 
-int vecSumInt(int* arr, int n) 
+int vecSumInt(int* dev_arr, int n) 
 {
-      int* dev_arr;
       int gridSize = (int)ceil((float)n/blockSize);
-      cudaMalloc(&dev_arr, n * sizeof(int));
-      cudaMemcpy(dev_arr, arr, n * sizeof(int), cudaMemcpyHostToDevice);
 
       int out;
       int* dev_out;
@@ -249,17 +281,13 @@ int vecSumInt(int* arr, int n)
       cudaDeviceSynchronize();
 
       cudaMemcpy(&out, dev_out, sizeof(int), cudaMemcpyDeviceToHost);
-      cudaFree(dev_arr);
       cudaFree(dev_out);
       return out;
 }
 
-double vecSumDouble(double* arr, int n) 
+double vecSumDouble(double* dev_arr, int n) 
 {
-      double* dev_arr;
       int gridSize = (int)ceil((float)n/blockSize);
-      cudaMalloc(&dev_arr, n * sizeof(double));
-      cudaMemcpy(dev_arr, arr, n * sizeof(double), cudaMemcpyHostToDevice);
 
       double out;
       double* dev_out;
@@ -270,7 +298,6 @@ double vecSumDouble(double* arr, int n)
       cudaDeviceSynchronize();
 
       cudaMemcpy(&out, dev_out, sizeof(double), cudaMemcpyDeviceToHost);
-      cudaFree(dev_arr);
       cudaFree(dev_out);
       return out;
 }
@@ -308,4 +335,12 @@ void just_return(void* data, void*& d_data, int size)
 void just_front(void* data, void*& d_data, int size)
 {
       cudaMemcpy(d_data, data, size, cudaMemcpyHostToDevice);
+}
+
+void dot_prodIntCPU(int* a, int* b, int* c, int n)
+{
+      dim3 Block_dim(min_blk, min_blk);
+      int gridSize = (int)ceil((float)n/min_blk);
+      dim3 Grid_dim(gridSize, gridSize);
+      dotIntGPU << < Grid_dim, Block_dim >> > (a, b, c, n);
 }

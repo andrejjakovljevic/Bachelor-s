@@ -35,7 +35,7 @@ def sendMessage(d : dict) -> dict:
     d["userName"]=userName
     sender = json.dumps(d)
     s.send(sender.encode())
-    data = s.recv(1025).decode()
+    data = s.recv(100250).decode()
     helper = json.loads(data)
     if (helper["message"]=="error"):
         raise Exception(helper["text"])

@@ -1,7 +1,7 @@
 from array import array
 import string
 from rtiCUDA import messageSender
-
+import numpy as np
 
 class rcarray:
     
@@ -78,6 +78,13 @@ class rcarray:
             d["id"]=self.id
             resp = messageSender.sendMessage(d)
             return resp["array"].__str__()
+        if (len(self.dims)==2):
+            d["operation"]="print"
+            d["length"]=self.dims[0]*self.dims[1]
+            d["type"]=self.type
+            d["id"]=self.id
+            resp = messageSender.sendMessage(d)
+            return resp["array"].__str__()
 
     def __del__(self):
         d=dict()
@@ -118,6 +125,13 @@ def sum(a : rcarray):
         d["id"]=a.id
         resp = messageSender.sendMessage(d)
         return resp["val"]
+    if (len(a.dims)==2):
+        d["operation"]="sumv"
+        d["type"]=a.type
+        d["length"]=a.dims[0]*a.dims[1]
+        d["id"]=a.id
+        resp = messageSender.sendMessage(d)
+        return resp["val"]
 
 def makeRcArray(type : string, dims : list, num : int) -> rcarray:
     d = dict()
@@ -128,4 +142,46 @@ def makeRcArray(type : string, dims : list, num : int) -> rcarray:
         d["num"]=num
         resp = messageSender.sendMessage(d)
         return rcarray(resp["id"],type,dims,1)
+
+def makeRcArrayFromNumpy(type : string, arr : np.array, dim : int) -> rcarray:
+    d = dict()
+    if (dim==1):
+        d["operation"]="create_from_numpy_v"
+        d["type"]=type
+        d["length"]=arr.size
+        d["array"]=arr.tolist()
+        resp = messageSender.sendMessage(d)
+        return rcarray(resp["id"],type,[arr.size],1)
+
+def dot(a : rcarray, b: rcarray) -> rcarray:
+    d=dict()
+    if (a.dim==2 and b.dim==2 and a.dims[0]==b.dims[0] and a.dims[1]==b.dims[1] and a.dims[0]==a.dims[1]):
+        d["operation"]="dotmm"
+        d["type"]=a.type
+        d["length"]=a.dims[0]*a.dims[1]
+        d["id1"]=a.id
+        d["id2"]=b.id
+        resp = messageSender.sendMessage(d)
+        return rcarray(resp["id"],a.type,a.dims,2)
+
+def makeMatrix(type : string, arr : list, dim : int) -> rcarray:
+    d = dict()
+    if (len(arr)!=dim):
+        raise Exception("Bad dimensions!")
+    for a in arr:
+        if (a.dims[0]!=dim):
+            raise Exception("Bad dimensions!")
+        if (a.type!=type):
+            raise Exception("Bad type!")
+    ids = []
+    for a in arr:
+        ids.append(a.id)
+    d["operation"]="createm"
+    d["type"]=type
+    d["length"]=len(arr)
+    d["dim"]=dim
+    d["ids"]=ids
+    resp = messageSender.sendMessage(d)
+    return rcarray(resp["id"],type,[dim,dim],2)
+
 

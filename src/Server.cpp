@@ -54,7 +54,8 @@ void send_error(string errMes, int new_socket)
 void do_calculations(char* buffer, int new_socket)
 {
     auto nesto = json::parse(buffer);
-    cout << nesto["operation"] << endl;
+    //cout << nesto["operation"] << endl;
+    json j;
     if (nesto["operation"]=="createv")
     {
         int length = nesto["length"];
@@ -85,10 +86,10 @@ void do_calculations(char* buffer, int new_socket)
         }
         BasicArray* ba = new BasicArray(type, dims, 1, d);
         int id = st->addArray(ba);
-        json j;
+        just_front(ba->data,ba->d_data,ba->size());
+        BasicArray* a = st->getArray(0);
         j["message"]="OK";
         j["id"]=id;
-        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
     }
     else if (nesto["operation"]=="binopvv")
     {
@@ -126,67 +127,69 @@ void do_calculations(char* buffer, int new_socket)
         {
             if (nesto["op"]=="+")
             {
-                vecAddIntCPU((int*)a->getData(), (int*)b->getData(), (int*)ba->getData(), length);
+                vecAddIntCPU((int*)a->getd_Data(), (int*)b->getd_Data(), (int*)ba->getd_Data(), length);
             }
             else if (nesto["op"]=="-")
             {
-                vecSubIntCPU((int*)a->getData(), (int*)b->getData(), (int*)ba->getData(), length);
+                vecSubIntCPU((int*)a->getd_Data(), (int*)b->getd_Data(), (int*)ba->getd_Data(), length);
             }
             else if (nesto["op"]=="*")
             {
-                vecMulIntCPU((int*)a->getData(), (int*)b->getData(), (int*)ba->getData(), length);
+                vecMulIntCPU((int*)a->getd_Data(), (int*)b->getd_Data(), (int*)ba->getd_Data(), length);
             }
+            //just_return(ba->getData(),ba->d_data,ba->size());
         }
         else if (a->getType()==DOUBLE && b->getType()==DOUBLE)
         {
             if (nesto["op"]=="+")
             {
-                vecAddDoubleCPU((double*)a->getData(), (double*)b->getData(), (double*)ba->getData(), length);
+               vecAddDoubleCPU((double*)a->getd_Data(), (double*)b->getd_Data(), (double*)ba->getd_Data(), length);
             }
             else if (nesto["op"]=="-")
             {
-                vecSubDoubleCPU((double*)a->getData(), (double*)b->getData(), (double*)ba->getData(), length);
+                vecSubDoubleCPU((double*)a->getd_Data(), (double*)b->getd_Data(), (double*)ba->getd_Data(), length);
             }
             else if (nesto["op"]=="*")
             {
-                vecMulDoubleCPU((double*)a->getData(), (double*)b->getData(), (double*)ba->getData(), length);
+                vecMulDoubleCPU((double*)a->getd_Data(), (double*)b->getd_Data(), (double*)ba->getd_Data(), length);
             }
+            //just_return(ba->getData(),ba->d_data,ba->size());
         }
         else if (a->getType()==DOUBLE && b->getType()==INT)
         {
             if (nesto["op"]=="+")
             {
-                vecAddDoubleIntCPU((double*)a->getData(), (int*)b->getData(), (double*)ba->getData(), length);
+                vecAddDoubleIntCPU((double*)a->getd_Data(), (int*)b->getd_Data(), (double*)ba->getd_Data(), length);
             }
             else if (nesto["op"]=="-")
             {
-                vecSubDoubleIntCPU((double*)a->getData(), (int*)b->getData(), (double*)ba->getData(), length);
+                vecSubDoubleIntCPU((double*)a->getd_Data(), (int*)b->getd_Data(), (double*)ba->getd_Data(), length);
             }
             else if (nesto["op"]=="*")
             {
-                vecMulDoubleIntCPU((double*)a->getData(), (int*)b->getData(), (double*)ba->getData(), length);
+                vecMulDoubleIntCPU((double*)a->getd_Data(), (int*)b->getd_Data(), (double*)ba->getd_Data(), length);
             }
+            //just_return(ba->getData(),ba->d_data,ba->size());
         }
         else if (a->getType()==INT && b->getType()==DOUBLE)
         {
             if (nesto["op"]=="+")
             {
-                vecAddDoubleIntCPU((double*)b->getData(), (int*)a->getData(), (double*)ba->getData(), length);
+                vecAddDoubleIntCPU((double*)b->getd_Data(), (int*)a->getd_Data(), (double*)ba->getd_Data(), length);
             }
             else if (nesto["op"]=="-")
             {
-                vecSubIntDoubleCPU((int*)a->getData(), (double*)b->getData(), (double*)ba->getData(), length);
+                vecSubIntDoubleCPU((int*)a->getd_Data(), (double*)b->getd_Data(), (double*)ba->getd_Data(), length);
             }
             else if (nesto["op"]=="*")
             {
-                vecMulDoubleIntCPU((double*)b->getData(), (int*)a->getData(), (double*)ba->getData(), length);
+                vecMulDoubleIntCPU((double*)b->getd_Data(), (int*)a->getd_Data(), (double*)ba->getd_Data(), length);
             }
+            //just_return(ba->getData(),ba->d_data,ba->size());
         }
         int id = st->addArray(ba);
-        json j;
         j["message"]="OK";
         j["id"]=id;
-        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
     }
     else if (nesto["operation"]=="print")
     {
@@ -204,7 +207,7 @@ void do_calculations(char* buffer, int new_socket)
             send_error("Array does not exist",new_socket);
             return;
         }
-        json j;
+        just_return(a->data,a->d_data,a->size());
         if (nesto["type"]=="double")
         {
             double* d = Converter::voidToDoubleArray(a->getData());
@@ -227,7 +230,6 @@ void do_calculations(char* buffer, int new_socket)
             j["message"]="OK";
             j["array"]=ret;
         }
-        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
     }
     else if (nesto["operation"]=="delete")
     {
@@ -245,9 +247,7 @@ void do_calculations(char* buffer, int new_socket)
             return;
         }
         st->removeArray(nesto["id"]);
-        json j;
         j["message"]="OK";
-        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
     }
     else if (nesto["operation"]=="connect")
     {
@@ -259,9 +259,7 @@ void do_calculations(char* buffer, int new_socket)
             return;
         }
         users->addUser(nesto["userName"]);
-        json j;
         j["message"]="OK";
-        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
     }
     else if (nesto["operation"]=="disconnect")
     {
@@ -273,9 +271,7 @@ void do_calculations(char* buffer, int new_socket)
             return;
         }
         users->deleteUser(nesto["userName"]);
-        json j;
         j["message"]="OK";
-        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
     }
     else if (nesto["operation"]=="setv")
     {
@@ -294,6 +290,7 @@ void do_calculations(char* buffer, int new_socket)
         }
         int pos = nesto["pos"];
         string type = nesto["type"];
+        just_return(a->data,a->d_data,a->size());
         if (type=="int")
         {
             int x = nesto["val"];
@@ -306,9 +303,8 @@ void do_calculations(char* buffer, int new_socket)
             double* d = Converter::voidToDoubleArray(a->getData());
             d[pos]=x;
         }
-        json j;
+        just_front(a->data,a->d_data,a->size());
         j["message"]="OK";
-        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
     }
     else if (nesto["operation"]=="getv")
     {
@@ -325,9 +321,9 @@ void do_calculations(char* buffer, int new_socket)
             send_error("Array does not exist",new_socket);
             return;
         }
+        just_return(a->data,a->d_data,a->size());
         int pos = nesto["pos"];
         string type = nesto["type"];
-        json j;
         j["message"]="OK";
         if (type=="int")
         {
@@ -341,7 +337,6 @@ void do_calculations(char* buffer, int new_socket)
             double x = d[pos];
             j["val"]=x;
         }
-        send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
     }
     else if (nesto["operation"]=="sumv")
     {
@@ -359,8 +354,8 @@ void do_calculations(char* buffer, int new_socket)
             return;
         }
         int length = nesto["length"];
-        json j;
         j["message"]="OK";
+        just_return(a->data,a->d_data,a->size());
         if (nesto["type"]=="int")
         {
             int res = vecSumInt(Converter::voidToIntArray(a->getData()), length);
@@ -371,7 +366,14 @@ void do_calculations(char* buffer, int new_socket)
             double res = vecSumDouble(Converter::voidToDoubleArray(a->getData()),length);
             j["val"]=res;
         }
+    }
+    if (!check_error())
+    {
         send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
+    }
+    else 
+    {
+        send_error("Server error!",new_socket);
     }
 }
 

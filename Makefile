@@ -2,13 +2,13 @@ PROGRAM = server
 BUILD_DIR = build
 
 SOURCE_CU_LIST = \
-src/BasicOperations.cu
+src/BasicOperations.cu \
 
 SOURCE_CPP_LIST = \
 src/BasicArray.cpp \
-src/Server.cpp \
 src/SymTab.cpp \
-src/Users.cpp
+src/Users.cpp \
+src/Server.cpp
 
 INCLUDE_C_LIST = \
 -Iinc -Inlohmann
@@ -25,10 +25,10 @@ $(BUILD_DIR)/$(PROGRAM) : $(OBJECTS_LIST) Makefile
 	nvcc -o $(@) $(OBJECTS_LIST)
 
 $(BUILD_DIR)/%.o : %.cu Makefile | $(BUILD_DIR)
-	nvcc -c -g $(INCLUDE_C_LIST) -o $(@) $(<)
+	nvcc -c  $(INCLUDE_C_LIST) -o $(@) $(<)
 
 $(BUILD_DIR)/%.o : %.cpp Makefile | $(BUILD_DIR)
-	nvcc -c -g $(INCLUDE_C_LIST) -o $(@) $(<)
+	nvcc -c $(INCLUDE_C_LIST) -o $(@) $(<)
 	
 $(BUILD_DIR) :
 	mkdir $(@)

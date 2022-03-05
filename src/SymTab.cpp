@@ -12,7 +12,10 @@ int SymbolTable::addArray(BasicArray* ba)
 
 BasicArray* SymbolTable::getArray(int sid)
 {
-    if (mapa.find(sid)!=mapa.end()) return mapa[sid];
+    if (mapa.find(sid)!=mapa.end()) 
+    {
+        return mapa[sid];
+    }
     else return nullptr;
 }
 

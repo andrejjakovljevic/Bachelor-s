@@ -7,13 +7,16 @@ using namespace std;
 
 // Number of threads in each thread block
 static const int blockSize = 1024;
- 
+//static const long long max_size = (long long)3*1024*1024*1024;
+int trensize = 0;
+
+
 __global__ void vecAddDoubleIntGPU(double *a, int *b, double *c, int n)
 {
       int id = blockIdx.x*blockDim.x+threadIdx.x;
  
       if (id < n)
-            c[id] = a[id] + (double)b[id];
+            c[id] = a[id] + b[id];
 }
 
 __global__ void vecMulDoubleIntGPU(double *a, int *b, double *c, int n)
@@ -91,197 +94,87 @@ __global__ void vecMulIntGPU(int* a, int *b, int *c, int n)
 
 void vecAddDoubleCPU(double *a, double *b, double *c, int n)
 {
-      double *d_a;
-      double *d_b;
-      double *d_c;
-      int bytes = sizeof(double)*n;
-      cudaMalloc(&d_a, bytes);
-      cudaMalloc(&d_b, bytes);
-      cudaMalloc(&d_c, bytes);
-      cudaMemcpy( d_a, a, bytes, cudaMemcpyHostToDevice);
-      cudaMemcpy( d_b, b, bytes, cudaMemcpyHostToDevice);
-
       int gridSize = (int)ceil((float)n/blockSize);
-      vecAddDoubleGPU<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
-      cudaMemcpy( c, d_c, bytes, cudaMemcpyDeviceToHost );
-      cudaFree(d_a);
-      cudaFree(d_b);
-      cudaFree(d_c);
+      vecAddDoubleGPU<<<gridSize, blockSize>>>(a, b, c, n);
 }
 
 void vecSubDoubleCPU(double *a, double *b, double *c, int n)
 {
-      double *d_a;
-      double *d_b;
-      double *d_c;
-      int bytes = sizeof(double)*n;
-      cudaMalloc(&d_a, bytes);
-      cudaMalloc(&d_b, bytes);
-      cudaMalloc(&d_c, bytes);
-      cudaMemcpy( d_a, a, bytes, cudaMemcpyHostToDevice);
-      cudaMemcpy( d_b, b, bytes, cudaMemcpyHostToDevice);
       int gridSize = (int)ceil((float)n/blockSize);
-      vecSubDoubleGPU<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
-      cudaMemcpy( c, d_c, bytes, cudaMemcpyDeviceToHost );
-      cudaFree(d_a);
-      cudaFree(d_b);
-      cudaFree(d_c);
+      vecSubDoubleGPU<<<gridSize, blockSize>>>(a, b, c, n);
 }
 
 void vecMulDoubleCPU(double *a, double *b, double *c, int n)
 {
-      double *d_a;
-      double *d_b;
-      double *d_c;
-      int bytes = sizeof(double)*n;
-      cudaMalloc(&d_a, bytes);
-      cudaMalloc(&d_b, bytes);
-      cudaMalloc(&d_c, bytes);
-      cudaMemcpy( d_a, a, bytes, cudaMemcpyHostToDevice);
-      cudaMemcpy( d_b, b, bytes, cudaMemcpyHostToDevice);
       int gridSize = (int)ceil((float)n/blockSize);
-      vecMulDoubleGPU<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
-      cudaMemcpy( c, d_c, bytes, cudaMemcpyDeviceToHost );
-      cudaFree(d_a);
-      cudaFree(d_b);
-      cudaFree(d_c);
+      vecMulDoubleGPU<<<gridSize, blockSize>>>(a, b, c, n);
 }
 
 void vecAddIntCPU(int *a, int *b, int *c, int n)
 {
-      int *d_a;
-      int *d_b;
-      int *d_c;
-      int bytes = sizeof(int)*n;
-      cudaMalloc(&d_a, bytes);
-      cudaMalloc(&d_b, bytes);
-      cudaMalloc(&d_c, bytes);
-      cudaMemcpy( d_a, a, bytes, cudaMemcpyHostToDevice);
-      cudaMemcpy( d_b, b, bytes, cudaMemcpyHostToDevice);
       int gridSize = (int)ceil((float)n/blockSize);
-      vecAddIntGPU<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
-      cudaMemcpy( c, d_c, bytes, cudaMemcpyDeviceToHost );
-      cudaFree(d_a);
-      cudaFree(d_b);
-      cudaFree(d_c);
+      vecAddIntGPU<<<gridSize, blockSize>>>(a, b, c, n);
 }
 
 void vecSubIntCPU(int *a, int *b, int *c, int n)
 {
-      int *d_a;
-      int *d_b;
-      int *d_c;
-      int bytes = sizeof(int)*n;
-      cudaMalloc(&d_a, bytes);
-      cudaMalloc(&d_b, bytes);
-      cudaMalloc(&d_c, bytes);
-      cudaMemcpy( d_a, a, bytes, cudaMemcpyHostToDevice);
-      cudaMemcpy( d_b, b, bytes, cudaMemcpyHostToDevice);
       int gridSize = (int)ceil((float)n/blockSize);
-      vecSubIntGPU<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
-      cudaMemcpy( c, d_c, bytes, cudaMemcpyDeviceToHost );
-      cudaFree(d_a);
-      cudaFree(d_b);
-      cudaFree(d_c);
+      vecSubIntGPU<<<gridSize, blockSize>>>(a, b, c, n);
 }
 
 void vecMulIntCPU(int *a, int *b, int *c, int n)
 {
-      int *d_a;
-      int *d_b;
-      int *d_c;
-      int bytes = sizeof(int)*n;
-      cudaMalloc(&d_a, bytes);
-      cudaMalloc(&d_b, bytes);
-      cudaMalloc(&d_c, bytes);
-      cudaMemcpy( d_a, a, bytes, cudaMemcpyHostToDevice);
-      cudaMemcpy( d_b, b, bytes, cudaMemcpyHostToDevice);
+     // int *d_a;
+      //int *d_b;
+      //int *d_c;
+      //int bytes = sizeof(int)*n;
+      //float time;
+      //cudaMalloc(&d_a, bytes);
+      //cudaMalloc(&d_b, bytes);
+      //cudaMalloc(&d_c, bytes);
+      //cudaMemcpy( d_a, a, bytes, cudaMemcpyHostToDevice);
+      //cudaMemcpy( d_b, b, bytes, cudaMemcpyHostToDevice);
       int gridSize = (int)ceil((float)n/blockSize);
-      vecMulIntGPU<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
-      cudaMemcpy( c, d_c, bytes, cudaMemcpyDeviceToHost );
-      cudaFree(d_a);
-      cudaFree(d_b);
-      cudaFree(d_c);
+
+      /*cudaEvent_t start, stop;
+      cudaEventCreate(&start);
+      cudaEventCreate(&stop); 
+      cudaEventRecord(start, 0);
+*/
+      vecMulIntGPU<<<gridSize, blockSize>>>(a, b, c, n);
+
+      //cudaMemcpy( c, d_c, bytes, cudaMemcpyDeviceToHost );
+      /*cudaEventRecord(stop, 0);
+      cudaEventSynchronize(stop);
+      cudaEventElapsedTime(&time, start, stop);*/
+      //cudaFree(d_a);
+      //cudaFree(d_b);
+      //cudaFree(d_c);
+      //printf("Time to generate:  %3.1f ms \n", time);
 }
 
 void vecAddDoubleIntCPU(double *a, int *b, double *c, int n)
 {
-      double *d_a;
-      int *d_b;
-      double *d_c;
-      int bytes1 = sizeof(int)*n;
-      int bytes2 = sizeof(double)*n;
-      cudaMalloc(&d_a, bytes2);
-      cudaMalloc(&d_b, bytes1);
-      cudaMalloc(&d_c, bytes2);
-      cudaMemcpy( d_a, a, bytes2, cudaMemcpyHostToDevice);
-      cudaMemcpy( d_b, b, bytes1, cudaMemcpyHostToDevice);
       int gridSize = (int)ceil((float)n/blockSize);
-      vecAddDoubleIntGPU<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
-      cudaMemcpy( c, d_c, bytes2, cudaMemcpyDeviceToHost );
-      cudaFree(d_a);
-      cudaFree(d_b);
-      cudaFree(d_c);
+      vecAddDoubleIntGPU<<<gridSize, blockSize>>>(a, b, c, n);
 }
 
 void vecMulDoubleIntCPU(double *a, int *b, double *c, int n)
 {
-      double *d_a;
-      int *d_b;
-      double *d_c;
-      int bytes1 = sizeof(int)*n;
-      int bytes2 = sizeof(double)*n;
-      cudaMalloc(&d_a, bytes2);
-      cudaMalloc(&d_b, bytes1);
-      cudaMalloc(&d_c, bytes2);
-      cudaMemcpy( d_a, a, bytes2, cudaMemcpyHostToDevice);
-      cudaMemcpy( d_b, b, bytes1, cudaMemcpyHostToDevice);
       int gridSize = (int)ceil((float)n/blockSize);
-      vecMulDoubleIntGPU<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
-      cudaMemcpy( c, d_c, bytes2, cudaMemcpyDeviceToHost );
-      cudaFree(d_a);
-      cudaFree(d_b);
-      cudaFree(d_c);
+      vecMulDoubleIntGPU<<<gridSize, blockSize>>>(a, b, c, n);
 }
 
 void vecSubDoubleIntCPU(double *a, int *b, double *c, int n)
 {
-      double *d_a;
-      int *d_b;
-      double *d_c;
-      int bytes1 = sizeof(int)*n;
-      int bytes2 = sizeof(double)*n;
-      cudaMalloc(&d_a, bytes2);
-      cudaMalloc(&d_b, bytes1);
-      cudaMalloc(&d_c, bytes2);
-      cudaMemcpy( d_a, a, bytes2, cudaMemcpyHostToDevice);
-      cudaMemcpy( d_b, b, bytes1, cudaMemcpyHostToDevice);
       int gridSize = (int)ceil((float)n/blockSize);
-      vecSubDoubleIntGPU<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
-      cudaMemcpy( c, d_c, bytes2, cudaMemcpyDeviceToHost );
-      cudaFree(d_a);
-      cudaFree(d_b);
-      cudaFree(d_c);
+      vecSubDoubleIntGPU<<<gridSize, blockSize>>>(a, b, c, n);
 }
 
 void vecSubIntDoubleCPU(int *a, double *b, double *c, int n)
 {
-      int *d_a;
-      double *d_b;
-      double *d_c;
-      int bytes1 = sizeof(int)*n;
-      int bytes2 = sizeof(double)*n;
-      cudaMalloc(&d_a, bytes1);
-      cudaMalloc(&d_b, bytes2);
-      cudaMalloc(&d_c, bytes2);
-      cudaMemcpy( d_a, a, bytes1, cudaMemcpyHostToDevice);
-      cudaMemcpy( d_b, b, bytes2, cudaMemcpyHostToDevice);
       int gridSize = (int)ceil((float)n/blockSize);
-      vecSubIntDoubleGPU<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
-      cudaMemcpy( c, d_c, bytes2, cudaMemcpyDeviceToHost );
-      cudaFree(d_a);
-      cudaFree(d_b);
-      cudaFree(d_c);
+      vecSubIntDoubleGPU<<<gridSize, blockSize>>>(a, b, c, n);
 }
 
 void initVecIntCPU(int *a, int x, int n)
@@ -380,4 +273,39 @@ double vecSumDouble(double* arr, int n)
       cudaFree(dev_arr);
       cudaFree(dev_out);
       return out;
+}
+
+bool check_error()
+{
+      cudaError_t err = cudaGetLastError();  
+      return ( err != cudaSuccess );
+}
+
+void copy_back(void* data, void*& d_data, int size)
+{
+      //cudaMemcpy(data, d_data, size, cudaMemcpyDeviceToHost);
+      cudaFree(d_data);
+      trensize-=size;
+}
+
+void copy_front(void* data, void*& d_data, int size)
+{
+      trensize+=size;
+      cudaMalloc(&d_data, size);
+      //cudaMemcpy(d_data, data, size, cudaMemcpyHostToDevice);
+}
+
+void g_alloc(void*& d_data, int size)
+{
+      cudaMalloc(&d_data, size);
+}
+
+void just_return(void* data, void*& d_data, int size)
+{
+      cudaMemcpy(data, d_data, size, cudaMemcpyDeviceToHost);
+}
+
+void just_front(void* data, void*& d_data, int size)
+{
+      cudaMemcpy(d_data, data, size, cudaMemcpyHostToDevice);
 }

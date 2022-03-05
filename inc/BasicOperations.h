@@ -15,5 +15,12 @@ extern void vecSubDoubleIntCPU(double *a, int *b, double *c, int n);
 extern void vecSubIntDoubleCPU(int *a, double *b, double *c, int n);
 extern int vecSumInt(int* arr, int n);
 extern double vecSumDouble(double* arr, int n);
+extern bool check_error();
+extern void copy_back(void* data, void*& d_data, int size);
+extern void copy_front(void* data, void*& d_data, int size);
+extern void g_alloc(void*& d_data, int size);
+extern void just_return(void* data, void*& d_data, int size);
+extern void just_front(void* data, void*& d_data, int size);
 
+extern int trensize;
 #endif

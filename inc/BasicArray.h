@@ -8,13 +8,15 @@ typedef enum {INT, DOUBLE} Type; // 0 - INS, 1 - DOUBLE
 
 class BasicArray
 {
+
+public:
     Type type;
     int dim;
     void* data;
     int* dims;
     int id;
+    void* d_data;
 
-public:
 
     void setId(int id)
     {
@@ -39,7 +41,7 @@ public:
     int sizeType()
     {
         if (type==INT) return sizeof(int);
-        if (type==DOUBLE) return sizeof(int);
+        if (type==DOUBLE) return sizeof(double);
         return 0;
     }
 
@@ -52,10 +54,13 @@ public:
         return data;
     }
 
-    ~BasicArray()
+    void* getd_Data()
     {
-        free(data);
+        return d_data;
     }
+
+    ~BasicArray();
+
 };
 
 #endif

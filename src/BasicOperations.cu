@@ -7,7 +7,7 @@ using namespace std;
 
 // Number of threads in each thread block
 static const int blockSize = 1024;
-static const int min_blk = 32;
+static const int BLOCK_SIZE = 32;
 //static const long long max_size = (long long)3*1024*1024*1024;
 int trensize = 0;
 
@@ -194,38 +194,49 @@ void initVecDoubleCPU(double* a, double x, int n)
       }
 }
 
-__global__ void dotIntGPU(int* a, int* b, int* c, int dim) 
+__global__ void dotIntGPU(int* d_a, int* d_b, int* d_c, int n) 
 {
-      int i,j;
-      float temp = 0;
+      __shared__ int tile_a[BLOCK_SIZE][BLOCK_SIZE];
+      __shared__ int tile_b[BLOCK_SIZE][BLOCK_SIZE];
 
-      __shared__ int Left_shared_t [min_blk][min_blk];
-      __shared__ int Right_shared_t[min_blk][min_blk];
+      int row = blockIdx.y * BLOCK_SIZE + threadIdx.y;
+      int col = blockIdx.x * BLOCK_SIZE + threadIdx.x;
+      int tmp = 0;
+      int idx;
 
-      // Row i of matrix left
-      int row = blockIdx.y * blockDim.y + threadIdx.y;
-      int col = blockIdx.x * blockDim.x + threadIdx.x;
-      if (row>=dim || col>=dim) return;
-
-      for (int tileNUM = 0; tileNUM < gridDim.x; tileNUM++) 
+      for (int sub = 0; sub < gridDim.x; ++sub) 
       {
+            idx = row * n + sub * BLOCK_SIZE + threadIdx.x;
+            if(idx >= n*n)
+            {
+                  tile_a[threadIdx.y][threadIdx.x] = 0;
+            }
+            else
+            {
+                  tile_a[threadIdx.y][threadIdx.x] = d_a[idx];
+            }
 
-            j = tileNUM * min_blk + threadIdx.x;
-            i = tileNUM * min_blk + threadIdx.y;
-
-            Left_shared_t[threadIdx.y][threadIdx.x] = a[row * dim + j];// Coalesced access
-
-            Right_shared_t[threadIdx.y][threadIdx.x] = b[i * dim + col]; // Coalesced access
+            idx = (sub * BLOCK_SIZE + threadIdx.y) * n + col;
+            if(idx >= n*n)
+            {
+                  tile_b[threadIdx.y][threadIdx.x] = 0;
+            }  
+            else
+            {
+                  tile_b[threadIdx.y][threadIdx.x] = d_b[idx];
+            }
             __syncthreads();
 
-            // Accumulate one tile of res from tiles of left and right in shared mem
-            for (int k = 0; k < min_blk; k++) {
-
-                  temp += Left_shared_t[threadIdx.y][k] * Right_shared_t[k][threadIdx.x]; //no shared memory bank conflict
+            for (int k = 0; k < BLOCK_SIZE; ++k) 
+            {
+                  tmp += tile_a[threadIdx.y][k] * tile_b[k][threadIdx.x];
             }
             __syncthreads();
       }
-      c[row * dim + col] = temp;
+      if(row < n && col < n)
+      {
+            d_c[row * n + col] = tmp;
+      }
 }
 
 __global__ void sumCommMultiBlockInt(const int *gArr, int n, int *gOut) 
@@ -259,7 +270,8 @@ __global__ void sumCommMultiBlockDouble(const double *gArr, int n, double *gOut)
       __shared__ double shArr[blockSize];
       shArr[thIdx] = sum;
       __syncthreads();
-      for (int size = blockSize/2; size>0; size/=2) { //uniform
+      for (int size = blockSize/2; size>0; size/=2) 
+      { //uniform
             if (thIdx<size)
                   shArr[thIdx] += shArr[thIdx+size];
             __syncthreads();
@@ -339,8 +351,8 @@ void just_front(void* data, void*& d_data, int size)
 
 void dot_prodIntCPU(int* a, int* b, int* c, int n)
 {
-      dim3 Block_dim(min_blk, min_blk);
-      int gridSize = (int)ceil((float)n/min_blk);
+      dim3 Block_dim(BLOCK_SIZE, BLOCK_SIZE);
+      int gridSize = (int)ceil((float)n/BLOCK_SIZE);
       dim3 Grid_dim(gridSize, gridSize);
       dotIntGPU << < Grid_dim, Block_dim >> > (a, b, c, n);
 }

@@ -13,10 +13,10 @@ class rcarray:
 
     def __add__(self, o):
         d=dict()
+        d["operation"]="binopvv"
         if (len(self.dims)==1 and len(o.dims)==1):
             if (self.dims[0]!=o.dims[0]):
                 raise Exception("Arrays must be of same dimensions")
-            d["operation"]="binopvv"
             t : string = "int"
             if (self.type=="double" or o.type=="double"):
                 t="double"
@@ -28,14 +28,27 @@ class rcarray:
             resp = messageSender.sendMessage(d)
             dims = []
             dims.append(self.dims[0])
-            return rcarray(resp["id"],t,dims,1)    
+            return rcarray(resp["id"],t,dims,1)
+        if (len(self.dims)==2 and len(o.dims)==2):
+            if (self.dims[1]!=o.dims[1] or self.dims[0]!=o.dims[0]):
+                raise Exception("Arrays must be of same dimensions")
+            t : string = "int"
+            if (self.type=="double" or o.type=="double"):
+                t="double"
+            d["op"]="+"
+            d["length"]=o.dims[0]*o.dims[1]
+            d["id1"]=self.id
+            d["id2"]=o.id
+            d["type"]=t
+            resp = messageSender.sendMessage(d)
+            return rcarray(resp["id"],t,self.dims,2)
     
     def __sub__(self, o):
         d=dict()
+        d["operation"]="binopvv"
         if (len(self.dims)==1 and len(o.dims)==1):
             if (self.dims[0]!=o.dims[0]):
                 raise Exception("Arrays must be of same dimensions")
-            d["operation"]="binopvv"
             t : string = "int"
             if (self.type=="double" or o.type=="double"):
                 t="double"
@@ -48,13 +61,26 @@ class rcarray:
             dims = []
             dims.append(self.dims[0])
             return rcarray(resp["id"],t,dims,1) 
+        if (len(self.dims)==2 and len(o.dims)==2):
+            if (self.dims[1]!=o.dims[1] or self.dims[0]!=o.dims[0]):
+                raise Exception("Arrays must be of same dimensions")
+            t : string = "int"
+            if (self.type=="double" or o.type=="double"):
+                t="double"
+            d["op"]="-"
+            d["length"]=o.dims[0]*o.dims[1]
+            d["id1"]=self.id
+            d["id2"]=o.id
+            d["type"]=t
+            resp = messageSender.sendMessage(d)
+            return rcarray(resp["id"],t,self.dims,2)
 
     def __mul__(self, o):
         d=dict()
+        d["operation"]="binopvv"
         if (len(self.dims)==1 and len(o.dims)==1):
             if (self.dims[0]!=o.dims[0]):
                 raise Exception("Arrays must be of same dimensions")
-            d["operation"]="binopvv"
             t : string = "int"
             if (self.type=="double" or o.type=="double"):
                 t="double"
@@ -66,7 +92,20 @@ class rcarray:
             resp = messageSender.sendMessage(d)
             dims = []
             dims.append(self.dims[0])
-            return rcarray(resp["id"],t,dims,1)         
+            return rcarray(resp["id"],t,dims,1)   
+        if (len(self.dims)==2 and len(o.dims)==2):
+            if (self.dims[1]!=o.dims[1] or self.dims[0]!=o.dims[0]):
+                raise Exception("Arrays must be of same dimensions")
+            t : string = "int"
+            if (self.type=="double" or o.type=="double"):
+                t="double"
+            d["op"]="*"
+            d["length"]=o.dims[0]*o.dims[1]
+            d["id1"]=self.id
+            d["id2"]=o.id
+            d["type"]=t
+            resp = messageSender.sendMessage(d)
+            return rcarray(resp["id"],t,self.dims,2)      
 
 
     def __str__(self):

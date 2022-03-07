@@ -43,26 +43,18 @@ def get_matrices(filename):
     s_mat_t = s_mat.transpose(axes = None, copy=True)
     return (s_mat,s_mat_t)
 
-def triangle_count(A: list, At: list) -> int:
-    maxi = 0
-    arr = np.zeros(len(A),np.int64)
-    for i in range(len(A)):
-        for j in range(len(A)):
-            k = A[i]*At[j]
-            #arr[j] = k
-        #pdarr = rcarray.makeRcArrayFromNumpy("int",arr,1)
-        #maxi += rcarray.sum(pdarr*A[i])
-    return maxi
+def triangle_count_cuda(A: list, At: list) -> int:
+    ar1 = rcarray.makeMatrix("int",A,len(A))
+    ar1t = rcarray.makeMatrix("int",At,len(At))
+    helper = rcarray.dot(ar1,ar1t)
+    return rcarray.sum(helper*ar1)
 
 def triangle_count_numpy(A: list, At: list):
-    maxi = 0
-    arr = np.zeros(len(A),np.int64)
-    for i in range(len(A)):
-        for j in range(len(A)):
-            k=np.sum(A[i]*At[j])
-            arr[j]=k
-        maxi+=np.sum(arr*A[i])
-    return maxi
+    np1 = np.stack(A, axis=0)
+    np1t = np.stack(At, axis=0)
+    helper=np.matmul(np1,np1t)
+    return np.sum(helper*np1)
+    
 
 messageSender.connect("andrej")
 (s_mat, s_mat_t) = get_matrices("matrices/"+sys.argv[1]+".mtx")
@@ -73,15 +65,14 @@ h2 = np.array(dense2,np.int64)
 pd_out = create_blocks_scalar(h1)
 pd_out_t = create_blocks_scalar(h2)
 start = time.perf_counter()
-sol = triangle_count(pd_out,pd_out_t)
+sol = triangle_count_cuda(pd_out,pd_out_t)
 end=time.perf_counter() 
 t1 = end - start
-#print(sol)
 start = time.perf_counter()
 sol2 = triangle_count_numpy(h1,h2)
 end=time.perf_counter() 
 t2 = end - start
-print(t1,t2)
+print(sys.argv[1],len(pd_out),len(pd_out_t),t1,t2)
 messageSender.disconnect()
 #pd_out = create_blocks_scalar(np.array(dense1,np.int64))
 #pd_out_t = create_blocks_scalar(np.array(dense2, np.int64))

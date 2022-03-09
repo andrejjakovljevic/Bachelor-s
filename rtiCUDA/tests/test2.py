@@ -7,9 +7,9 @@ import math
 
 if __name__=='__main__':
     messageSender.connect("andrej")
-    for l in range(500,1000,5):
-        ar1 = rcarray.makeRcArray("double",[l*100000],2.5)
-        ar2 = rcarray.makeRcArray("double",[l*100000],2.5)
+    for l in range(5,1000,10):
+        ar1 = rcarray.makeRcArray("int",[l*100000],2)
+        ar2 = rcarray.makeRcArray("int",[l*100000],2)
         #print(ar2)
         start = time.perf_counter()
         for i in range(2):
@@ -19,8 +19,8 @@ if __name__=='__main__':
 
         
         #print(ar3)
-        np1 = np.ones(l*100000)*2.5
-        np2 = np.ones(l*100000)*2.5
+        np1 = np.ones(l*100000)*2
+        np2 = np.ones(l*100000)*2
         start = time.perf_counter()
         for i in range(2):
             np3=np1*np2

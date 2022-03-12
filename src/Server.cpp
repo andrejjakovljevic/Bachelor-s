@@ -419,7 +419,51 @@ void do_calculations(char* buffer, int new_socket)
         BasicArray* ba = new BasicArray(type, dims, 1, d);
         if (a->getType()==INT && b->getType()==INT)
         {
-            dot_prodIntCPU((int*)a->d_data,(int*)b->d_data,(int*)ba->d_data,k);
+            dot_prodIntCPU((int*)a->d_data,(int*)b->d_data,(int*)ba->d_data,k,k,k,k,k,k);
+        }
+        int id = st->addArray(ba);
+        j["message"]="OK";
+        j["id"]=id;
+    }
+    if (nesto["operation"]=="dotNotEqual")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        int dim = 1;
+        int adim0 = nesto["adim0"];
+        int adim1 = nesto["adim1"];
+        int bdim0 = nesto["bdim0"];
+        int bdim1 = nesto["bdim1"];
+        int length = adim0*bdim1;
+        int dims[1] = {length};
+        int type;
+        void* d;
+        if (nesto["type"]=="int")
+        {   
+            type=0;
+            d = malloc(sizeof(int)*length);
+        }
+        else if (nesto["type"]=="double")
+        {
+            type=1;
+            d = malloc(sizeof(double)*length);
+        }
+        BasicArray* a = st->getArray(nesto["id1"]);
+        BasicArray* b = st->getArray(nesto["id2"]);
+        if (a==nullptr || b==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        BasicArray* ba = new BasicArray(type, dims, 1, d);
+        if (a->getType()==INT && b->getType()==INT)
+        {
+            dot_prodIntCPU((int*)a->d_data,(int*)b->d_data,(int*)ba->d_data,adim0,adim1,bdim0,bdim1,adim0,bdim1);
         }
         int id = st->addArray(ba);
         j["message"]="OK";
@@ -444,7 +488,7 @@ void do_calculations(char* buffer, int new_socket)
             d = malloc(sizeof(int)*length*dim);
             int* data = (int*)d;
             int s=0;
-            for (int i=0;i<length;i++)
+            for (int i=0;i<dim;i++)
             {
                 BasicArray* ba = st->getArray(nesto["ids"][i]);
                 just_return(ba->data,ba->d_data,ba->size());
@@ -462,7 +506,7 @@ void do_calculations(char* buffer, int new_socket)
             d = malloc(sizeof(double)*length*dim);
             double* data = (double*)d;
             int s=0;
-            for (int i=0;i<length;i++)
+            for (int i=0;i<dim;i++)
             {
                 BasicArray* ba = st->getArray(nesto["ids"][i]);
                 just_return(ba->data,ba->d_data,ba->size());
@@ -474,7 +518,7 @@ void do_calculations(char* buffer, int new_socket)
                 }
             }
         }
-        int dims[1]={dim*dim};
+        int dims[1]={length*dim};
         BasicArray* ba = new BasicArray(type, dims, 1, d);
         int id = st->addArray(ba);
         just_front(ba->data,ba->d_data,ba->size());

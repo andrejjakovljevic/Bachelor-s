@@ -232,6 +232,8 @@ def makeRcArrayFromNumpy(type : string, arr : np.array, dim : int) -> rcarray:
         return rcarray(resp["id"],type,[arr.size],1)
 
 def dot(a : rcarray, b: rcarray) -> rcarray:
+    if (a.type != b.type):
+        raise Exception("Different types!")
     d=dict()
     if (a.dim==2 and b.dim==2 and a.dims[0]==b.dims[0] and a.dims[1]==b.dims[1] and a.dims[0]==a.dims[1]):
         d["operation"]="dotmm"
@@ -241,14 +243,25 @@ def dot(a : rcarray, b: rcarray) -> rcarray:
         d["id2"]=b.id
         resp = messageSender.sendMessage(d)
         return rcarray(resp["id"],a.type,a.dims,2)
-        
+    elif (a.dim==2 and b.dim==2 and a.dims[1]==b.dims[0]):
+        d["operation"]="dotNotEqual"
+        d["type"]=a.type
+        d["adim0"]=a.dims[0]
+        d["adim1"]=a.dims[1]
+        d["bdim0"]=b.dims[0]
+        d["bdim1"]=b.dims[1]
+        d["id1"]=a.id
+        d["id2"]=b.id
+        resp = messageSender.sendMessage(d)
+        return rcarray(resp["id"],a.type,[a.dims[0],b.dims[1]],2)
+    else:
+        raise Exception("Wrong dimensions")   
+
 def makeMatrix(type : string, arr : list, dim : int) -> rcarray:
     d = dict()
     if (len(arr)!=dim):
         raise Exception("Bad dimensions!")
     for a in arr:
-        if (a.dims[0]!=dim):
-            raise Exception("Bad dimensions!")
         if (a.type!=type):
             raise Exception("Bad type!")
     ids = []
@@ -256,10 +269,10 @@ def makeMatrix(type : string, arr : list, dim : int) -> rcarray:
         ids.append(a.id)
     d["operation"]="createm"
     d["type"]=type
-    d["length"]=len(arr)
+    d["length"]=arr[0].dims[0]
     d["dim"]=dim
     d["ids"]=ids
     resp = messageSender.sendMessage(d)
-    return rcarray(resp["id"],type,[dim,dim],2)
+    return rcarray(resp["id"],type,[dim,arr[0].dims[0]],2)
 
 

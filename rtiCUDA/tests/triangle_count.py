@@ -67,11 +67,13 @@ pd_out_t = create_blocks_scalar(h2)
 start = time.perf_counter()
 sol = triangle_count_cuda(pd_out,pd_out_t)
 end=time.perf_counter() 
+print("sol=",sol)
 t1 = end - start
 start = time.perf_counter()
 sol2 = triangle_count_numpy(h1,h2)
 end=time.perf_counter() 
 t2 = end - start
+print("end=",sol2)
 print(sys.argv[1],len(pd_out),len(pd_out_t),t1,t2)
 messageSender.disconnect()
 #pd_out = create_blocks_scalar(np.array(dense1,np.int64))

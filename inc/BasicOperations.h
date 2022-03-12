@@ -21,7 +21,7 @@ extern void copy_front(void* data, void*& d_data, int size);
 extern void g_alloc(void*& d_data, int size);
 extern void just_return(void* data, void*& d_data, int size);
 extern void just_front(void* data, void*& d_data, int size);
-extern void dot_prodIntCPU(int* arr1, int* arr2, int* c, int n);
+void dot_prodIntCPU(int* a, int* b, int* c, int ARows, int ACols, int BRows, int BCols, int CRows, int CCols);
 extern void* spliceInt(int* arr1, int start, int stop);
 extern void* spliceDouble(double* arr1, int star, int stop); 
 extern void rangeSetInt(int* arr1, int* arr2, int start, int stop);

@@ -7,7 +7,7 @@ using namespace std;
 
 // Number of threads in each thread block
 static const int blockSize = 1024;
-static const int BLOCK_SIZE = 32;
+static const int TILE_DIM = 32;
 //static const long long max_size = (long long)3*1024*1024*1024;
 int trensize = 0;
 
@@ -194,50 +194,48 @@ void initVecDoubleCPU(double* a, double x, int n)
       }
 }
 
-__global__ void dotIntGPU(int* d_a, int* d_b, int* d_c, int n) 
+
+
+__global__ void dotIntGPU(int* A, int* B, int* C, int ARows, int ACols, int BRows,
+      int BCols, int CRows, int CCols)
 {
-      __shared__ int tile_a[BLOCK_SIZE][BLOCK_SIZE];
-      __shared__ int tile_b[BLOCK_SIZE][BLOCK_SIZE];
+      int CValue = 0;
 
-      int row = blockIdx.y * BLOCK_SIZE + threadIdx.y;
-      int col = blockIdx.x * BLOCK_SIZE + threadIdx.x;
-      int tmp = 0;
-      int idx;
+      int Row = blockIdx.y*TILE_DIM + threadIdx.y;
+      int Col = blockIdx.x*TILE_DIM + threadIdx.x;
 
-      for (int sub = 0; sub < gridDim.x; ++sub) 
-      {
-            idx = row * n + sub * BLOCK_SIZE + threadIdx.x;
-            if(idx >= n*n)
+      __shared__ int As[TILE_DIM][TILE_DIM];
+      __shared__ int Bs[TILE_DIM][TILE_DIM];
+
+      for (int k = 0; k < (TILE_DIM + ACols - 1)/TILE_DIM; k++) {
+
+            if (k*TILE_DIM + threadIdx.x < ACols && Row < ARows)
+                  As[threadIdx.y][threadIdx.x] = A[Row*ACols + k*TILE_DIM + threadIdx.x];
+            else
+                  As[threadIdx.y][threadIdx.x] = 0.0;
+
+            if (k*TILE_DIM + threadIdx.y < BRows && Col < BCols)
             {
-                  tile_a[threadIdx.y][threadIdx.x] = 0;
+                  Bs[threadIdx.y][threadIdx.x] = B[(k*TILE_DIM + threadIdx.y)*BCols + Col];
             }
             else
-            {
-                  tile_a[threadIdx.y][threadIdx.x] = d_a[idx];
-            }
+                  Bs[threadIdx.y][threadIdx.x] = 0.0;
 
-            idx = (sub * BLOCK_SIZE + threadIdx.y) * n + col;
-            if(idx >= n*n)
-            {
-                  tile_b[threadIdx.y][threadIdx.x] = 0;
-            }  
-            else
-            {
-                  tile_b[threadIdx.y][threadIdx.x] = d_b[idx];
-            }
             __syncthreads();
 
-            for (int k = 0; k < BLOCK_SIZE; ++k) 
-            {
-                  tmp += tile_a[threadIdx.y][k] * tile_b[k][threadIdx.x];
-            }
+            for (int n = 0; n < TILE_DIM; ++n)
+                  CValue += As[threadIdx.y][n] * Bs[n][threadIdx.x];
+
             __syncthreads();
       }
-      if(row < n && col < n)
+
+      if (Row < CRows && Col < CCols)
       {
-            d_c[row * n + col] = tmp;
+            C[((blockIdx.y * blockDim.y + threadIdx.y)*CCols) +
+                  (blockIdx.x * blockDim.x)+ threadIdx.x] = CValue;
       }
 }
+  
 
 __global__ void sumCommMultiBlockInt(const int *gArr, int n, int *gOut) 
 {
@@ -349,12 +347,13 @@ void just_front(void* data, void*& d_data, int size)
       cudaMemcpy(d_data, data, size, cudaMemcpyHostToDevice);
 }
 
-void dot_prodIntCPU(int* a, int* b, int* c, int n)
+void dot_prodIntCPU(int* a, int* b, int* c, int ARows, int ACols, int BRows, int BCols, int CRows, int CCols)
 {
-      dim3 Block_dim(BLOCK_SIZE, BLOCK_SIZE);
-      int gridSize = (int)ceil((float)n/BLOCK_SIZE);
-      dim3 Grid_dim(gridSize, gridSize);
-      dotIntGPU << < Grid_dim, Block_dim >> > (a, b, c, n);
+      dim3 Block_dim(TILE_DIM, TILE_DIM);
+      int gridSizeWidth1 = (int)ceil((float)BCols/TILE_DIM);
+      int gridSizeWidth2 = (int)ceil((float)ARows/TILE_DIM);
+      dim3 Grid_dim(gridSizeWidth1, gridSizeWidth2);
+      dotIntGPU << < Grid_dim, Block_dim >> > (a, b, c, ARows, ACols, BRows, BCols, CRows, CCols);
 }
 
 __global__ void spliceIntGPU(int* a, int* b, int n)

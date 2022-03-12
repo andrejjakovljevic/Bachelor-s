@@ -481,6 +481,75 @@ void do_calculations(char* buffer, int new_socket)
         j["message"]="OK";
         j["id"]=id;
     }
+    if (nesto["operation"]=="rangeget")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        BasicArray* a = st->getArray(nesto["id"]);
+        if (a==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        int start = nesto["start"];
+        int stop = nesto["stop"];
+        void* d;
+        void* d_d;
+        int length=stop-start;
+        int dim = 1;
+        int dims[1] = {length};
+        int type;
+        if (nesto["type"]=="int")
+        {
+            type=0;
+            d = malloc(sizeof(int)*length*dim);
+            d_d = (void*)spliceInt((int*)a->d_data,start,stop);
+        }
+        else if (nesto["type"]=="double")
+        {
+            type=1;
+            d = malloc(sizeof(int)*length*dim);
+            d_d=(void*)spliceDouble((double*)a->d_data,start,stop);
+        }
+        BasicArray* ba = new BasicArray(type, dims, 1, d);
+        int id = st->addArray(ba);
+        ba->d_data=d_d;
+        j["message"]="OK";
+        j["id"]=id;
+    }
+    else if (nesto["operation"]=="rangeset")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        BasicArray* a = st->getArray(nesto["id1"]);
+        BasicArray* b = st->getArray(nesto["id2"]);
+        if (a==nullptr || b==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        int start = nesto["start"];
+        int stop = nesto["stop"];
+        if (nesto["type"]=="int")
+        {
+            rangeSetInt((int*)a->d_data, (int*)b->d_data, start, stop);
+        }
+        else if (nesto["type"]=="double")
+        {
+            rangeSetDouble((double*)a->d_data, (double*)b->d_data, start, stop);
+        }
+        j["message"]="OK";
+    }
     if (!check_error())
     {
         send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );

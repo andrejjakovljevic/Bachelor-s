@@ -22,6 +22,10 @@ extern void g_alloc(void*& d_data, int size);
 extern void just_return(void* data, void*& d_data, int size);
 extern void just_front(void* data, void*& d_data, int size);
 extern void dot_prodIntCPU(int* arr1, int* arr2, int* c, int n);
+extern void* spliceInt(int* arr1, int start, int stop);
+extern void* spliceDouble(double* arr1, int star, int stop); 
+extern void rangeSetInt(int* arr1, int* arr2, int start, int stop);
+extern void rangeSetDouble(double* arr1, double* arr2, int start, int stop);
 
 extern int trensize;
 #endif

@@ -356,3 +356,57 @@ void dot_prodIntCPU(int* a, int* b, int* c, int n)
       dim3 Grid_dim(gridSize, gridSize);
       dotIntGPU << < Grid_dim, Block_dim >> > (a, b, c, n);
 }
+
+__global__ void spliceIntGPU(int* a, int* b, int n)
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+ 
+      if (id < n)
+      {
+            a[id]=b[id];
+      }
+}
+
+__global__ void spliceDoubleGPU(double* a, double* b, int n )
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+ 
+      if (id < n)
+            a[id]=b[id];
+}
+
+void* spliceInt(int* arr1, int start, int stop)
+{
+      void* d;
+      int n = stop-start;
+      int size = sizeof(int)*(stop-start);
+      cudaMalloc(&d, size);
+      int gridSize = (int)ceil((float)n/blockSize);
+      spliceIntGPU<<<gridSize, blockSize>>>((int*)d, arr1+start, n);
+      return d;
+}
+
+void* spliceDouble(double* arr1, int start, int stop)
+{
+      void* d;
+      int n = stop-start;
+      int size = sizeof(double)*(stop-start);
+      cudaMalloc(&d, size);
+      int gridSize = (int)ceil((float)n/blockSize);
+      spliceDoubleGPU<<<gridSize, blockSize>>>((double*)d, arr1+start, n);
+      return d;
+}
+
+void rangeSetInt(int* arr1, int* arr2, int start, int stop)
+{
+      int n = stop-start;
+      int gridSize = (int)ceil((float)n/blockSize);
+      spliceIntGPU<<<gridSize, blockSize>>>(arr1+start, arr2, n);
+}
+
+void rangeSetDouble(double* arr1, double* arr2, int start, int stop)
+{
+      int n = stop-start;
+      int gridSize = (int)ceil((float)n/blockSize);
+      spliceDoubleGPU<<<gridSize, blockSize>>>(arr1, arr2, n);
+}

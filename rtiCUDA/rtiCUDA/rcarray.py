@@ -1,5 +1,6 @@
 from array import array
 import string
+from tracemalloc import stop
 from rtiCUDA import messageSender
 import numpy as np
 
@@ -133,27 +134,65 @@ class rcarray:
 
     def __getitem__(self, key):
         d=dict()
-        if (len(self.dims)==1):
-            d["operation"]="getv"
-            if (key>=self.dims[0]):
-                raise Exception("Index out of range")
-            d["pos"]=key
-            d["id"]=self.id
-            d["type"]=self.type
-            resp = messageSender.sendMessage(d)
-            return resp["val"]
+        if (isinstance(key,slice)):
+            if (len(self.dims)==1):
+                d["operation"]="rangeget"
+                if ((key.start is not None and key.start<0) or (key.stop is not None and key.stop>self.dims[0])):
+                    raise Exception("Index out of range")
+                if (key.start is None):
+                    d["start"]=0
+                else:
+                    d["start"]=key.start
+                if (key.stop is None):
+                    d["stop"]=self.dims[0]
+                else:
+                    d["stop"]=key.stop
+                d["id"]=self.id
+                d["type"]=self.type
+                resp = messageSender.sendMessage(d)
+                return rcarray(resp["id"],self.type,[d["stop"]-d["start"]],1)
+        else: 
+            if (len(self.dims)==1):
+                d["operation"]="getv"
+                if (key>=self.dims[0]):
+                    raise Exception("Index out of range")
+                d["pos"]=key
+                d["id"]=self.id
+                d["type"]=self.type
+                resp = messageSender.sendMessage(d)
+                return resp["val"]
     
     def __setitem__(self, key, val):
         d=dict()
-        if (len(self.dims)==1):
-            d["operation"]="setv"
-            if (key>=self.dims[0]):
-                raise Exception("Index out of range")
-            d["pos"]=key
-            d["id"]=self.id
-            d["val"]=val
-            d["type"]=self.type
-            messageSender.sendMessage(d)
+        if (isinstance(key,slice)):
+            if (self.type!=val.type):
+                raise Exception("Incompatible types!")
+            if (len(self.dims)==1):
+                d["operation"]="rangeset"
+                if ((key.start is not None and key.start<0) or (key.stop is not None and key.stop>self.dims[0])):
+                    raise Exception("Index out of range")
+                if (key.start is None):
+                    d["start"]=0
+                else:
+                    d["start"]=key.start
+                if (key.stop is None):
+                    d["stop"]=self.dims[0]
+                else:
+                    d["stop"]=key.stop
+                d["id1"]=self.id
+                d["id2"]=val.id
+                d["type"]=self.type
+                messageSender.sendMessage(d)
+        else:
+            if (len(self.dims)==1):
+                d["operation"]="setv"
+                if (key>=self.dims[0]):
+                    raise Exception("Index out of range")
+                d["pos"]=key
+                d["id"]=self.id
+                d["val"]=val
+                d["type"]=self.type
+                messageSender.sendMessage(d)
 
 def sum(a : rcarray):
     d = dict()
@@ -202,7 +241,7 @@ def dot(a : rcarray, b: rcarray) -> rcarray:
         d["id2"]=b.id
         resp = messageSender.sendMessage(d)
         return rcarray(resp["id"],a.type,a.dims,2)
-
+        
 def makeMatrix(type : string, arr : list, dim : int) -> rcarray:
     d = dict()
     if (len(arr)!=dim):

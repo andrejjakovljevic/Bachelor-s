@@ -13,9 +13,13 @@
 #include <json.hpp>
 #include <pthread.h>
 #include <arpa/inet.h>    //close 
+#include <chrono>
+#include <unistd.h>
 #define PORT 12121
 using namespace std;
 using json = nlohmann::json;
+
+bool trace=false;
 
 void send_error(string errMes, int new_socket)
 {
@@ -25,8 +29,16 @@ void send_error(string errMes, int new_socket)
     send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
 }
 
+chrono::_V2::steady_clock::time_point start;
+chrono::_V2::steady_clock::time_point stop;
+long long int overall = 0;
+
 void do_calculations(char* buffer, int new_socket)
 {
+    if (trace)
+    {
+        start = chrono::steady_clock::now();
+    }
     auto nesto = json::parse(buffer);
     //cout << nesto["operation"] << endl;
     json j;
@@ -110,6 +122,10 @@ void do_calculations(char* buffer, int new_socket)
             {
                 vecMulIntCPU((int*)a->getd_Data(), (int*)b->getd_Data(), (int*)ba->getd_Data(), length);
             }
+            else if (nesto["op"]=="/")
+            {
+                vecDivIntCPU((int*)a->getd_Data(), (int*)b->getd_Data(), (double*)ba->getd_Data(), length);
+            }
             //just_return(ba->getData(),ba->d_data,ba->size());
         }
         else if (a->getType()==DOUBLE && b->getType()==DOUBLE)
@@ -125,6 +141,10 @@ void do_calculations(char* buffer, int new_socket)
             else if (nesto["op"]=="*")
             {
                 vecMulDoubleCPU((double*)a->getd_Data(), (double*)b->getd_Data(), (double*)ba->getd_Data(), length);
+            }
+            else if (nesto["op"]=="/")
+            {
+                vecDivDoubleCPU((double*)a->getd_Data(), (double*)b->getd_Data(), (double*)ba->getd_Data(), length);
             }
             //just_return(ba->getData(),ba->d_data,ba->size());
         }
@@ -142,6 +162,10 @@ void do_calculations(char* buffer, int new_socket)
             {
                 vecMulDoubleIntCPU((double*)a->getd_Data(), (int*)b->getd_Data(), (double*)ba->getd_Data(), length);
             }
+            else if (nesto["op"]=="/")
+            {
+                vecDivDoubleIntCPU((double*)a->getd_Data(), (int*)b->getd_Data(), (double*)ba->getd_Data(), length);
+            }
             //just_return(ba->getData(),ba->d_data,ba->size());
         }
         else if (a->getType()==INT && b->getType()==DOUBLE)
@@ -157,6 +181,10 @@ void do_calculations(char* buffer, int new_socket)
             else if (nesto["op"]=="*")
             {
                 vecMulDoubleIntCPU((double*)b->getd_Data(), (int*)a->getd_Data(), (double*)ba->getd_Data(), length);
+            }
+            else if (nesto["op"]=="/")
+            {
+                vecDivDoubleIntCPU((double*)a->getd_Data(), (int*)b->getd_Data(), (double*)ba->getd_Data(), length);
             }
             //just_return(ba->getData(),ba->d_data,ba->size());
         }
@@ -421,6 +449,10 @@ void do_calculations(char* buffer, int new_socket)
         {
             dot_prodIntCPU((int*)a->d_data,(int*)b->d_data,(int*)ba->d_data,k,k,k,k,k,k);
         }
+        else if (a->getType()==DOUBLE && b->getType()==DOUBLE)
+        {
+            dot_prodDoubleCPU((double*)a->d_data,(double*)b->d_data,(double*)ba->d_data,k,k,k,k,k,k);
+        }
         int id = st->addArray(ba);
         j["message"]="OK";
         j["id"]=id;
@@ -464,6 +496,10 @@ void do_calculations(char* buffer, int new_socket)
         if (a->getType()==INT && b->getType()==INT)
         {
             dot_prodIntCPU((int*)a->d_data,(int*)b->d_data,(int*)ba->d_data,adim0,adim1,bdim0,bdim1,adim0,bdim1);
+        }
+        if (a->getType()==DOUBLE && b->getType()==DOUBLE)
+        {
+            dot_prodDoubleCPU((double*)a->d_data,(double*)b->d_data,(double*)ba->d_data,adim0,adim1,bdim0,bdim1,adim0,bdim1);
         }
         int id = st->addArray(ba);
         j["message"]="OK";
@@ -511,7 +547,7 @@ void do_calculations(char* buffer, int new_socket)
                 BasicArray* ba = st->getArray(nesto["ids"][i]);
                 just_return(ba->data,ba->d_data,ba->size());
                 double* pom_data = (double*)ba->data;
-                for (int j=0;j<ba->dims[i];j++)
+                for (int j=0;j<ba->dims[0];j++)
                 {
                     data[s]=pom_data[j];
                     s++;
@@ -594,6 +630,140 @@ void do_calculations(char* buffer, int new_socket)
         }
         j["message"]="OK";
     }
+    else if (nesto["operation"]=="transpose")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        BasicArray* a = st->getArray(nesto["id"]);
+        if (a==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        int width = nesto["width"];
+        int height = nesto["height"];
+        if (nesto["type"]=="int")
+        {
+            transposeInplaceIntCPU((int*)a->d_data, width, height);
+        }
+        else if (nesto["type"]=="double")
+        {
+            transposeInplaceDoubleCPU((double*)a->d_data, width, height);
+        }
+        j["message"]="OK";
+    }
+    else if (nesto["operation"]=="binopvs")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        double x = nesto["x"];
+        BasicArray* a = st->getArray(nesto["id"]);
+        if (a==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        int length=nesto["length"];
+        int dims[1] = {length};
+        int type=1;
+        void* d = malloc(sizeof(double)*length);
+        BasicArray* ba = new BasicArray(type, dims, 1, d);
+        if (nesto["op"]=="*")
+        {
+            if (nesto["type"]=="int")
+            {
+                mulScalarIntDoubleCPU((int*)a->d_data, x, (double*)ba->d_data,length);
+            }
+            else if (nesto["type"]=="double")
+            {
+                mulScalarDoubleDoubleCPU((double*)a->d_data, x, (double*)ba->d_data,length);
+            }
+        }
+        if (nesto["op"]=="/")
+        {
+            if (nesto["type"]=="int")
+            {
+                divScalarIntDoubleCPU((int*)a->d_data, x, (double*)ba->d_data,length);
+            }
+            else if (nesto["type"]=="double")
+            {
+                divScalarDoubleDoubleCPU((double*)a->d_data, x, (double*)ba->d_data,length);
+            }
+        }
+        int id = st->addArray(ba);
+        j["message"]="OK";
+        j["id"]=id;
+    }
+    else if (nesto["operation"]=="submatrix")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        BasicArray* a = st->getArray(nesto["id"]);
+        if (a==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        int x1 = nesto["x1"];
+        int y1 = nesto["y1"];
+        int xd = nesto["xd"];
+        int yd = nesto["yd"];
+        int x = nesto["x"];
+        int y = nesto["y"];
+        int length = xd*yd;
+        int dims[1] = {length};
+        int type;
+        void* d;
+        if (nesto["type"]=="int")
+        {   
+            type=0;
+            d = malloc(sizeof(int)*length);
+        }
+        else if (nesto["type"]=="double")
+        {
+            type=1;
+            d = malloc(sizeof(double)*length);
+        }
+        BasicArray* ba = new BasicArray(type, dims, 1, d);
+        if (ba->getType()==INT)
+        {
+            getSubMatrixIntCPU((int*)a->getd_Data(),(int*)ba->getd_Data(),x1,y1,xd,yd,x,y);
+        }
+        else if (ba->getType()==DOUBLE)
+        {
+            getSubMatrixDoubleCPU((double*)a->getd_Data(),(double*)ba->getd_Data(),x1,y1,xd,yd,x,y);
+        }
+        int id = st->addArray(ba);
+        j["message"]="OK";
+        j["id"]=id;
+    }
+    else if (nesto["operation"]=="start_tracing")
+    {
+        trace=true;
+        j["message"]="OK";
+    }
+    else if (nesto["operation"]=="stop_tracing")
+    {
+        trace=false;
+        j["message"]="OK";
+        j["val"]=overall;
+        overall=0;
+    }
     if (!check_error())
     {
         send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
@@ -601,6 +771,11 @@ void do_calculations(char* buffer, int new_socket)
     else 
     {
         send_error("Server error!",new_socket);
+    }
+    if (trace)
+    {
+        stop = chrono::steady_clock::now();
+        overall+=chrono::duration_cast<chrono::milliseconds>(stop - start).count();
     }
 }
 

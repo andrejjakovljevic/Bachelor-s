@@ -25,7 +25,7 @@ $(BUILD_DIR)/$(PROGRAM) : $(OBJECTS_LIST) Makefile
 	nvcc -o $(@) $(OBJECTS_LIST)
 
 $(BUILD_DIR)/%.o : %.cu Makefile | $(BUILD_DIR)
-	nvcc -c  $(INCLUDE_C_LIST) -o $(@) $(<)
+	nvcc -c $(INCLUDE_C_LIST) -o $(@) $(<)
 
 $(BUILD_DIR)/%.o : %.cpp Makefile | $(BUILD_DIR)
 	nvcc -c $(INCLUDE_C_LIST) -o $(@) $(<)

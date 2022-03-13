@@ -93,6 +93,62 @@ __global__ void vecMulIntGPU(int* a, int *b, int *c, int n)
             c[id] = a[id] * b[id];
 }
 
+__global__ void vecDivDoubleGPU(double* a, double* b, double* c, int n)
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+      
+      if (id < n)
+            c[id] = a[id] / b[id];
+}
+
+__global__ void vecDivIntGPU(int* a, int* b, double* c, int n)
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+      
+      if (id < n)
+            c[id] = (double)a[id] / (double)b[id];
+}
+
+__global__ void vecDivDoubleIntGPU(double* a, int* b, double* c, int n)
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+      
+      if (id < n)
+            c[id] = a[id] / (double)b[id];
+}
+
+__global__ void vecDivIntDoubleGPU(int* a, double* b, double* c, int n)
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+      
+      if (id < n)
+            c[id] = (double)a[id] / b[id];
+}
+
+void vecDivDoubleCPU(double* a, double *b, double *c, int n)
+{
+      int gridSize = (int)ceil((float)n/blockSize);
+      vecDivDoubleGPU<<<gridSize, blockSize>>>(a, b, c, n);      
+}
+
+void vecDivIntCPU(int* a, int* b, double* c, int n)
+{
+      int gridSize = (int)ceil((float)n/blockSize);
+      vecDivIntGPU<<<gridSize, blockSize>>>(a, b, c, n);
+}
+
+void vecDivDoubleIntCPU(double* a, int* b, double* c, int n)
+{
+      int gridSize = (int)ceil((float)n/blockSize);
+      vecDivDoubleIntGPU<<<gridSize, blockSize>>>(a, b, c, n);
+}
+
+void vecDivIntDoubleCPU(int* a, double* b, double* c, int n)
+{
+      int gridSize = (int)ceil((float)n/blockSize);
+      vecDivIntDoubleGPU<<<gridSize, blockSize>>>(a, b, c, n);
+}
+
 void vecAddDoubleCPU(double *a, double *b, double *c, int n)
 {
       int gridSize = (int)ceil((float)n/blockSize);
@@ -235,6 +291,46 @@ __global__ void dotIntGPU(int* A, int* B, int* C, int ARows, int ACols, int BRow
                   (blockIdx.x * blockDim.x)+ threadIdx.x] = CValue;
       }
 }
+
+__global__ void dotDoubleGPU(double* A, double* B, double* C, int ARows, int ACols, int BRows,
+      int BCols, int CRows, int CCols)
+      {
+            double CValue = 0;
+
+            int Row = blockIdx.y*TILE_DIM + threadIdx.y;
+            int Col = blockIdx.x*TILE_DIM + threadIdx.x;
+      
+            __shared__ double As[TILE_DIM][TILE_DIM];
+            __shared__ double Bs[TILE_DIM][TILE_DIM];
+      
+            for (int k = 0; k < (TILE_DIM + ACols - 1)/TILE_DIM; k++) {
+      
+                  if (k*TILE_DIM + threadIdx.x < ACols && Row < ARows)
+                        As[threadIdx.y][threadIdx.x] = A[Row*ACols + k*TILE_DIM + threadIdx.x];
+                  else
+                        As[threadIdx.y][threadIdx.x] = 0.0;
+      
+                  if (k*TILE_DIM + threadIdx.y < BRows && Col < BCols)
+                  {
+                        Bs[threadIdx.y][threadIdx.x] = B[(k*TILE_DIM + threadIdx.y)*BCols + Col];
+                  }
+                  else
+                        Bs[threadIdx.y][threadIdx.x] = 0.0;
+      
+                  __syncthreads();
+      
+                  for (int n = 0; n < TILE_DIM; ++n)
+                        CValue += As[threadIdx.y][n] * Bs[n][threadIdx.x];
+      
+                  __syncthreads();
+            }
+      
+            if (Row < CRows && Col < CCols)
+            {
+                  C[((blockIdx.y * blockDim.y + threadIdx.y)*CCols) +
+                        (blockIdx.x * blockDim.x)+ threadIdx.x] = CValue;
+            }
+      }
   
 
 __global__ void sumCommMultiBlockInt(const int *gArr, int n, int *gOut) 
@@ -315,6 +411,7 @@ double vecSumDouble(double* dev_arr, int n)
 bool check_error()
 {
       cudaError_t err = cudaGetLastError();  
+      //printf("CUDA Error: %s\n", cudaGetErrorString(err));  
       return ( err != cudaSuccess );
 }
 
@@ -354,6 +451,15 @@ void dot_prodIntCPU(int* a, int* b, int* c, int ARows, int ACols, int BRows, int
       int gridSizeWidth2 = (int)ceil((float)ARows/TILE_DIM);
       dim3 Grid_dim(gridSizeWidth1, gridSizeWidth2);
       dotIntGPU << < Grid_dim, Block_dim >> > (a, b, c, ARows, ACols, BRows, BCols, CRows, CCols);
+}
+
+void dot_prodDoubleCPU(double* a, double* b, double* c, int ARows, int ACols, int BRows, int BCols, int CRows, int CCols)
+{
+      dim3 Block_dim(TILE_DIM, TILE_DIM);
+      int gridSizeWidth1 = (int)ceil((float)BCols/TILE_DIM);
+      int gridSizeWidth2 = (int)ceil((float)ARows/TILE_DIM);
+      dim3 Grid_dim(gridSizeWidth1, gridSizeWidth2);
+      dotDoubleGPU << < Grid_dim, Block_dim >> > (a, b, c, ARows, ACols, BRows, BCols, CRows, CCols);
 }
 
 __global__ void spliceIntGPU(int* a, int* b, int n)
@@ -407,5 +513,150 @@ void rangeSetDouble(double* arr1, double* arr2, int start, int stop)
 {
       int n = stop-start;
       int gridSize = (int)ceil((float)n/blockSize);
-      spliceDoubleGPU<<<gridSize, blockSize>>>(arr1, arr2, n);
+      spliceDoubleGPU<<<gridSize, blockSize>>>(arr1+start, arr2, n);
+}
+
+__global__ void transposeInplaceIntGPU(int* srcDst, int width, int pitch)
+{
+      int col = blockIdx.x * blockDim.x + threadIdx.x;
+      int row = blockIdx.y * blockDim.y + threadIdx.y;
+
+      int tid_in = row * pitch + col;
+      int tid_out = col * pitch + row;
+
+      if((row < width) && (col < width) && (row<col)) 
+      {
+            int temp = srcDst[tid_out];
+            srcDst[tid_out] = srcDst[tid_in];
+            srcDst[tid_in] = temp;
+      }
+} 
+
+__global__ void transposeInplaceDoubleGPU(double* srcDst, int width, int pitch)
+{
+      int col = blockIdx.x * blockDim.x + threadIdx.x;
+      int row = blockIdx.y * blockDim.y + threadIdx.y;
+
+      int tid_in = row * pitch + col;
+      int tid_out = col * pitch + row;
+
+      if((row < width) && (col < width) && (row<col)) 
+      {
+            double temp = srcDst[tid_out];
+            srcDst[tid_out] = srcDst[tid_in];
+            srcDst[tid_in] = temp;
+      }
+} 
+
+void transposeInplaceIntCPU(int* srcDst, int width, int height)
+{
+      dim3 Block_dim(TILE_DIM, TILE_DIM);
+      int gridSizeWidth1 = (int)ceil((float)width/TILE_DIM);
+      int gridSizeWidth2 = (int)ceil((float)height/TILE_DIM);
+      dim3 Grid_dim(gridSizeWidth1, gridSizeWidth2);
+      transposeInplaceIntGPU << < Grid_dim, Block_dim >> > (srcDst, width, height);
+}
+
+void transposeInplaceDoubleCPU(double* srcDst, int width, int height)
+{
+      dim3 Block_dim(TILE_DIM, TILE_DIM);
+      int gridSizeWidth1 = (int)ceil((float)width/TILE_DIM);
+      int gridSizeWidth2 = (int)ceil((float)height/TILE_DIM);
+      dim3 Grid_dim(gridSizeWidth1, gridSizeWidth2);
+      transposeInplaceDoubleGPU << < Grid_dim, Block_dim >> > (srcDst, width, height);
+}
+
+__global__ void mulScalarIntDoubleGPU(int* a, int x, double* b, int n)
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+ 
+      if (id < n)
+            b[id] = (double)a[id]*(double)x;
+}
+
+__global__ void divScalarIntDoubleGPU(int* a, int x, double* b, int n)
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+ 
+      if (id < n)
+            b[id] = (double)a[id]/(double)x;
+}
+
+__global__ void mulScalarDoubleDoubleGPU(double* a, double x, double* b, int n)
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+ 
+      if (id < n)
+            b[id] = (double)a[id]*(double)x;
+}
+
+__global__ void divScalarDoubleDoubleGPU(double* a, double x, double* b, int n)
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+ 
+      if (id < n)
+            b[id] = (double)a[id]/(double)x;
+}
+
+void mulScalarIntDoubleCPU(int* a, int x, double* b, int n)
+{
+      int gridSize = (int)ceil((float)n/blockSize);
+      mulScalarIntDoubleGPU<<<gridSize, blockSize>>>(a, x, b, n);
+}
+
+void divScalarIntDoubleCPU(int* a, int x, double* b, int n)
+{
+      int gridSize = (int)ceil((float)n/blockSize);
+      divScalarIntDoubleGPU<<<gridSize, blockSize>>>(a, x, b, n);
+}
+
+
+void mulScalarDoubleDoubleCPU(double* a, double x, double* b, int n)
+{
+      int gridSize = (int)ceil((float)n/blockSize);
+      mulScalarDoubleDoubleGPU<<<gridSize, blockSize>>>(a, x, b, n);
+}
+
+void divScalarDoubleDoubleCPU(double* a, double x, double* b, int n)
+{
+      int gridSize = (int)ceil((float)n/blockSize);
+      divScalarDoubleDoubleGPU<<<gridSize, blockSize>>>(a, x, b, n);
+}
+
+__global__ void getSubMatrixDoubleGPU(double* a, double* b, int x1, int y1, int xd, int yd, int x, int y)
+{
+      int y_moj = blockIdx.y*TILE_DIM + threadIdx.y;
+      int x_moj = blockIdx.x*TILE_DIM + threadIdx.x;
+      if (y_moj<yd && x_moj<xd)
+      {
+            b[y_moj*xd+x_moj]=a[(y_moj+y1)*x+x_moj+x1];
+      }
+}
+
+__global__ void getSubMatrixIntGPU(int* a, int* b, int x1, int y1, int xd, int yd, int x, int y)
+{
+      int y_moj = blockIdx.y*TILE_DIM + threadIdx.y;
+      int x_moj = blockIdx.x*TILE_DIM + threadIdx.x;
+      if (y_moj<yd && x_moj<xd)
+      {
+            b[y_moj*xd+x_moj]=a[(y_moj+y1)*x+x_moj+x1];
+      }
+}
+
+void getSubMatrixDoubleCPU(double* a, double* b, int x1, int y1, int xd, int yd, int x, int y)
+{
+      dim3 Block_dim(TILE_DIM, TILE_DIM);
+      int gridSizeWidth1 = (int)ceil((float)xd/TILE_DIM);
+      int gridSizeWidth2 = (int)ceil((float)yd/TILE_DIM);
+      dim3 Grid_dim(gridSizeWidth1, gridSizeWidth2);
+      getSubMatrixDoubleGPU << < Grid_dim, Block_dim >> > (a, b, x1, y1, xd, yd, x, y);
+}
+
+void getSubMatrixIntCPU(int* a, int* b, int x1, int y1, int xd, int yd, int x, int y)
+{
+      dim3 Block_dim(TILE_DIM, TILE_DIM);
+      int gridSizeWidth1 = (int)ceil((float)xd/TILE_DIM);
+      int gridSizeWidth2 = (int)ceil((float)yd/TILE_DIM);
+      dim3 Grid_dim(gridSizeWidth1, gridSizeWidth2);
+      getSubMatrixIntGPU << < Grid_dim, Block_dim >> > (a, b, x1, y1, xd, yd, x, y);
 }

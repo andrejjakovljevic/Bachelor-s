@@ -40,3 +40,14 @@ def sendMessage(d : dict) -> dict:
     if (helper["message"]=="error"):
         raise Exception(helper["text"])
     return helper
+
+def start_tracing():
+    d = dict()
+    d["operation"]="start_tracing"
+    sendMessage(d)
+
+def stop_tracing():
+    d = dict()
+    d["operation"] = "stop_tracing"
+    resp = sendMessage(d)
+    return resp["val"]

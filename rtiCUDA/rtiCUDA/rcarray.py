@@ -1,6 +1,8 @@
 from array import array
 import string
 from tracemalloc import stop
+from turtle import width
+from typing import Tuple
 from rtiCUDA import messageSender
 import numpy as np
 
@@ -11,6 +13,46 @@ class rcarray:
         self.type = type
         self.dims = dims
         self.dim = dim
+
+    def __truediv__(self, o):
+        d=dict()
+        if (isinstance(o,rcarray)):
+            d["operation"]="binopvv"
+            if (len(self.dims)==1 and len(o.dims)==1):
+                if (self.dims[0]!=o.dims[0]):
+                    raise Exception("Arrays must be of same dimensions")
+                t : string = "double"
+                d["op"]="/"
+                d["length"]=o.dims[0]
+                d["id1"]=self.id
+                d["id2"]=o.id
+                d["type"]=t
+                resp = messageSender.sendMessage(d)
+                dims = []
+                dims.append(self.dims[0])
+                return rcarray(resp["id"],t,dims,1)
+            if (len(self.dims)==2 and len(o.dims)==2):
+                if (self.dims[1]!=o.dims[1] or self.dims[0]!=o.dims[0]):
+                    raise Exception("Arrays must be of same dimensions")
+                t : string = "int"
+                if (self.type=="double" or o.type=="double"):
+                    t="double"
+                d["op"]="/"
+                d["length"]=o.dims[0]*o.dims[1]
+                d["id1"]=self.id
+                d["id2"]=o.id
+                d["type"]=t
+                resp = messageSender.sendMessage(d)
+                return rcarray(resp["id"],t,self.dims,2)
+        else:
+            d["operation"]="binopvs"
+            d["op"]="/"
+            d["type"]=self.type
+            d["id"]=self.id
+            d["length"]=self.dims[0] 
+            d["x"]=o
+            resp = messageSender.sendMessage(d)
+            return rcarray(resp["id"],"double",[self.dims[0]],1)
 
     def __add__(self, o):
         d=dict()
@@ -78,35 +120,45 @@ class rcarray:
 
     def __mul__(self, o):
         d=dict()
-        d["operation"]="binopvv"
-        if (len(self.dims)==1 and len(o.dims)==1):
-            if (self.dims[0]!=o.dims[0]):
-                raise Exception("Arrays must be of same dimensions")
-            t : string = "int"
-            if (self.type=="double" or o.type=="double"):
-                t="double"
+        if (isinstance(o,rcarray)):
+            d["operation"]="binopvv"
+            if (len(self.dims)==1 and len(o.dims)==1):
+                if (self.dims[0]!=o.dims[0]):
+                    raise Exception("Arrays must be of same dimensions")
+                t : string = "int"
+                if (self.type=="double" or o.type=="double"):
+                    t="double"
+                d["op"]="*"
+                d["length"]=o.dims[0]
+                d["id1"]=self.id
+                d["id2"]=o.id
+                d["type"]=t
+                resp = messageSender.sendMessage(d)
+                dims = []
+                dims.append(self.dims[0])
+                return rcarray(resp["id"],t,dims,1)   
+            if (len(self.dims)==2 and len(o.dims)==2):
+                if (self.dims[1]!=o.dims[1] or self.dims[0]!=o.dims[0]):
+                    raise Exception("Arrays must be of same dimensions")
+                t : string = "int"
+                if (self.type=="double" or o.type=="double"):
+                    t="double"
+                d["op"]="*"
+                d["length"]=o.dims[0]*o.dims[1]
+                d["id1"]=self.id
+                d["id2"]=o.id
+                d["type"]=t
+                resp = messageSender.sendMessage(d)
+                return rcarray(resp["id"],t,self.dims,2)  
+        else:
+            d["operation"]="binopvs"
             d["op"]="*"
-            d["length"]=o.dims[0]
-            d["id1"]=self.id
-            d["id2"]=o.id
-            d["type"]=t
+            d["type"]=self.type
+            d["id"]=self.id
+            d["length"]=self.dims[0] 
+            d["x"]=o
             resp = messageSender.sendMessage(d)
-            dims = []
-            dims.append(self.dims[0])
-            return rcarray(resp["id"],t,dims,1)   
-        if (len(self.dims)==2 and len(o.dims)==2):
-            if (self.dims[1]!=o.dims[1] or self.dims[0]!=o.dims[0]):
-                raise Exception("Arrays must be of same dimensions")
-            t : string = "int"
-            if (self.type=="double" or o.type=="double"):
-                t="double"
-            d["op"]="*"
-            d["length"]=o.dims[0]*o.dims[1]
-            d["id1"]=self.id
-            d["id2"]=o.id
-            d["type"]=t
-            resp = messageSender.sendMessage(d)
-            return rcarray(resp["id"],t,self.dims,2)      
+            return rcarray(resp["id"],"double",[self.dims[0]],1)  
 
 
     def __str__(self):
@@ -151,6 +203,31 @@ class rcarray:
                 d["type"]=self.type
                 resp = messageSender.sendMessage(d)
                 return rcarray(resp["id"],self.type,[d["stop"]-d["start"]],1)
+        elif (len(self.dims)==2 and isinstance(key,Tuple)):
+            if (isinstance(key[1],slice)):
+                d["operation"]="rangeget"
+                if (key[1].start is None):
+                    d["start"]=0
+                else:
+                    d["start"]=key[1].start
+                if (key[1].stop is None):
+                    d["stop"]=self.dims[1]
+                else:
+                    d["stop"]=key[1].stop
+                red = key[0]
+                d["start"]+=red*self.dims[1]
+                d["stop"]+=red*self.dims[1]
+                d["id"]=self.id
+                d["type"]=self.type
+                resp = messageSender.sendMessage(d)
+                return rcarray(resp["id"],self.type,[d["stop"]-d["start"]],1)
+            else:
+                d["operation"]="getv"
+                d["pos"]=key[0]*self.dims[1]+key[1]
+                d["id"]=self.id
+                d["type"]=self.type
+                resp = messageSender.sendMessage(d)
+                return resp["val"]
         else: 
             if (len(self.dims)==1):
                 d["operation"]="getv"
@@ -182,6 +259,31 @@ class rcarray:
                 d["id1"]=self.id
                 d["id2"]=val.id
                 d["type"]=self.type
+                messageSender.sendMessage(d)
+        elif (len(self.dims)==2 and isinstance(key,Tuple)):
+            if (isinstance(key[1],slice)):
+                d["operation"]="rangeset"
+                if (key[1].start is None):
+                    d["start"]=0
+                else:
+                    d["start"]=key[1].start
+                if (key[1].stop is None):
+                    d["stop"]=self.dims[1]
+                else:
+                    d["stop"]=key[1].stop
+                red = key[0]
+                d["start"]+=red*self.dims[1]
+                d["stop"]+=red*self.dims[1]
+                d["id1"]=self.id
+                d["id2"]=val.id
+                d["type"]=self.type
+                messageSender.sendMessage(d)
+            else:
+                d["operation"]="setv"
+                d["pos"]=key[0]*self.dims[1]+key[1]
+                d["id"]=self.id
+                d["type"]=self.type
+                d["val"]=val
                 messageSender.sendMessage(d)
         else:
             if (len(self.dims)==1):
@@ -275,4 +377,36 @@ def makeMatrix(type : string, arr : list, dim : int) -> rcarray:
     resp = messageSender.sendMessage(d)
     return rcarray(resp["id"],type,[dim,arr[0].dims[0]],2)
 
+def transpose(arr1 : rcarray):
+    d = dict()
+    if (arr1.dim!=2):
+        raise Exception("Must be a matrix!")
+    d["operation"]="transpose"
+    d["id"]=arr1.id
+    d["type"]=arr1.type
+    d["width"]=arr1.dims[1]
+    d["height"]=arr1.dims[0]
+    messageSender.sendMessage(d)
 
+def flatten(arr : rcarray):
+    s=1
+    for k in arr.dims:
+        s*=k
+    arr.dim=1
+    arr.dims=[s]
+
+def submatrix(arr : rcarray, x1, y1, xd, yd):
+    d=dict()
+    if (arr.dim!=2):
+        raise Exception("Must be a matrix!")
+    d["operation"]="submatrix"
+    d["id"]=arr.id
+    d["type"]=arr.type
+    d["x1"]=x1
+    d["y1"]=y1
+    d["xd"]=xd
+    d["yd"]=yd
+    d["x"]=arr.dims[1]
+    d["y"]=arr.dims[0]
+    resp = messageSender.sendMessage(d)
+    return rcarray(resp["id"],arr.type,[yd,xd],2)

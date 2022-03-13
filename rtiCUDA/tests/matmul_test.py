@@ -13,13 +13,13 @@ if __name__=='__main__':
     ars1 = []
     ars2 = []
     for i in range(3):
-        ar1 = rcarray.makeRcArray("int",[2],1)
+        ar1 = rcarray.makeRcArray("double",[2],1)
         ars1.append(ar1)
     for i in range(2):
-        ar2 = rcarray.makeRcArray("int",[3],2)
+        ar2 = rcarray.makeRcArray("double",[3],2)
         ars2.append(ar2)
-    ar3 = rcarray.makeMatrix("int",ars1,3)
-    ar6 = rcarray.makeMatrix("int",ars2,2)
+    ar3 = rcarray.makeMatrix("double",ars1,3)
+    ar6 = rcarray.makeMatrix("double",ars2,2)
     print(ar3)
     print(ar6)
     start = time.perf_counter()

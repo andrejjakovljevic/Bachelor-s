@@ -107,7 +107,6 @@ def doolittle(A,n,U,L):
     
     #n = A.shape[0]
     
-    
     for k in range(n):
         U[k, k:] = A[k, k:] - L[k,:k] @ U[:k,k:]
         L[(k+1):,k] = (A[(k+1):,k] - L[(k+1):,:] @ U[:,k]) / U[k, k]
@@ -116,42 +115,46 @@ def doolittle(A,n,U,L):
 
 if __name__=='__main__':
     messageSender.connect("andrej")
-    A = datasets.make_spd_matrix(n, random_state=None)
-    #L, U = doolittle(A)
-    #print(L@U)
-    #print(L)
-    #print(A)
-    #print(np.linalg.cholesky(A))
-    U = np.zeros((n, n), dtype=np.double)
-    L = np.eye(n, dtype=np.double)
-    start = time.perf_counter()
-    L,U=doolittle(A,n,U,L)
-    end = time.perf_counter()
-    #print(L)
-    #print(U)
-    #print(sol)
-    print("numpy=",end-start)
-    A_rc = []
-    for i in range(n):
-        A_rc.append(rcarray.makeRcArrayFromNumpy("double",A[i],1))
-    A_rc = rcarray.makeMatrix("double",A_rc,n)
-    L = []
-    U = []
-    for i in range(n):
-        ar1 = rcarray.makeRcArray("double",[n],0)
-        ar2 = rcarray.makeRcArray("double",[n],0)
-        L.append(ar1)
-        U.append(ar2)
-    L = rcarray.makeMatrix("double",L,n)
-    U = rcarray.makeMatrix("double",U,n)
-    for i in range(n):
-        L[i,i]=1
-    start = time.perf_counter()
-    L,U = doolittle_cuda(A_rc,n,U,L)
-    end = time.perf_counter()
-    #print(L)
-    #print(U)
-    #print(p)
-    print("cuda=",end-start)
+    for n in range(5,500,20):
+        A = datasets.make_spd_matrix(n, random_state=None)
+        #L, U = doolittle(A)
+        #print(L@U)
+        #print(L)
+        #print(A)
+        #print(np.linalg.cholesky(A))
+        U = np.zeros((n, n), dtype=np.double)
+        L = np.eye(n, dtype=np.double)
+        start = time.perf_counter()
+        messageSender.start_tracing()
+        doolittle(A,n,U,L)
+        num = messageSender.stop_tracing()
+        end = time.perf_counter()
+        #print(L)
+        #print(U)
+        #print(sol)
+        t1 = end-start
+        A_rc = []
+        for i in range(n):
+            A_rc.append(rcarray.makeRcArrayFromNumpy("double",A[i],1))
+        A_rc = rcarray.makeMatrix("double",A_rc,n)
+        L = []
+        U = []
+        for i in range(n):
+            ar1 = rcarray.makeRcArray("double",[n],0)
+            ar2 = rcarray.makeRcArray("double",[n],0)
+            L.append(ar1)
+            U.append(ar2)
+        L = rcarray.makeMatrix("double",L,n)
+        U = rcarray.makeMatrix("double",U,n)
+        for i in range(n):
+            L[i,i]=1
+        start = time.perf_counter()
+        cProfile.run('doolittle_cuda(A_rc,n,U,L)','stats/LU'+str(n)+'.txt')
+        end = time.perf_counter()
+        #print(L)
+        #print(U)
+        #print(p)
+        t2 = end-start
+        print(n,num,t2,t1)
     messageSender.disconnect()
     

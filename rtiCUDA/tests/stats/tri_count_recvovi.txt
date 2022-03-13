@@ -1,0 +1,120 @@
+Sun Mar 13 21:27:59 2022    tri_count_mycielskian2txt
+
+         220 function calls in 0.002 seconds
+
+   Ordered by: cumulative time
+   List reduced from 28 to 10 due to restriction <10>
+   List reduced from 10 to 1 due to restriction <'recv'>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        9    0.001    0.000    0.001    0.000 {method 'recv' of '_socket.socket' objects}
+
+
+Sun Mar 13 21:28:04 2022    tri_count_mycielskian4txt
+
+         238 function calls in 0.001 seconds
+
+   Ordered by: cumulative time
+   List reduced from 28 to 10 due to restriction <10>
+   List reduced from 10 to 1 due to restriction <'recv'>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        9    0.001    0.000    0.001    0.000 {method 'recv' of '_socket.socket' objects}
+
+
+Sun Mar 13 21:28:08 2022    tri_count_mycielskian5txt
+
+         262 function calls in 0.001 seconds
+
+   Ordered by: cumulative time
+   List reduced from 28 to 10 due to restriction <10>
+   List reduced from 10 to 1 due to restriction <'recv'>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        9    0.001    0.000    0.001    0.000 {method 'recv' of '_socket.socket' objects}
+
+
+Sun Mar 13 21:28:12 2022    tri_count_mycielskian6txt
+
+         310 function calls in 0.002 seconds
+
+   Ordered by: cumulative time
+   List reduced from 28 to 10 due to restriction <10>
+   List reduced from 10 to 1 due to restriction <'recv'>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        9    0.002    0.000    0.002    0.000 {method 'recv' of '_socket.socket' objects}
+
+
+Sun Mar 13 21:28:22 2022    tri_count_bcspwr02txt
+
+         314 function calls in 0.002 seconds
+
+   Ordered by: cumulative time
+   List reduced from 28 to 10 due to restriction <10>
+   List reduced from 10 to 1 due to restriction <'recv'>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        9    0.002    0.000    0.002    0.000 {method 'recv' of '_socket.socket' objects}
+
+
+Sun Mar 13 21:28:30 2022    tri_count_bcspwr04txt
+
+         764 function calls in 0.007 seconds
+
+   Ordered by: cumulative time
+   List reduced from 28 to 10 due to restriction <10>
+   List reduced from 10 to 1 due to restriction <'recv'>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        9    0.006    0.001    0.006    0.001 {method 'recv' of '_socket.socket' objects}
+
+
+Sun Mar 13 21:28:55 2022    tri_count_GD00_atxt
+
+         920 function calls in 0.010 seconds
+
+   Ordered by: cumulative time
+   List reduced from 28 to 10 due to restriction <10>
+   List reduced from 10 to 1 due to restriction <'recv'>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        9    0.009    0.001    0.009    0.001 {method 'recv' of '_socket.socket' objects}
+
+
+Sun Mar 13 21:29:16 2022    tri_count_mycielskian10txt
+
+         1750 function calls in 0.026 seconds
+
+   Ordered by: cumulative time
+   List reduced from 28 to 10 due to restriction <10>
+   List reduced from 10 to 1 due to restriction <'recv'>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        9    0.025    0.003    0.025    0.003 {method 'recv' of '_socket.socket' objects}
+
+
+Sun Mar 13 21:29:31 2022    tri_count_delaunay_n10txt
+
+         2264 function calls in 0.038 seconds
+
+   Ordered by: cumulative time
+   List reduced from 28 to 10 due to restriction <10>
+   List reduced from 10 to 1 due to restriction <'recv'>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        9    0.037    0.004    0.037    0.004 {method 'recv' of '_socket.socket' objects}
+
+
+Sun Mar 13 21:30:11 2022    tri_count_bcspwr08txt
+
+         3464 function calls in 0.088 seconds
+
+   Ordered by: cumulative time
+   List reduced from 28 to 10 due to restriction <10>
+   List reduced from 10 to 1 due to restriction <'recv'>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        9    0.085    0.009    0.085    0.009 {method 'recv' of '_socket.socket' objects}
+
+

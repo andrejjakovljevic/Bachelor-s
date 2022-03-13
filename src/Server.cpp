@@ -31,14 +31,11 @@ void send_error(string errMes, int new_socket)
 
 chrono::_V2::steady_clock::time_point start;
 chrono::_V2::steady_clock::time_point stop;
-long long int overall = 0;
+int overall = 0;
 
 void do_calculations(char* buffer, int new_socket)
 {
-    if (trace)
-    {
-        start = chrono::steady_clock::now();
-    }
+    start = chrono::steady_clock::now();
     auto nesto = json::parse(buffer);
     //cout << nesto["operation"] << endl;
     json j;
@@ -756,6 +753,7 @@ void do_calculations(char* buffer, int new_socket)
     {
         trace=true;
         j["message"]="OK";
+        overall=0;
     }
     else if (nesto["operation"]=="stop_tracing")
     {
@@ -764,6 +762,11 @@ void do_calculations(char* buffer, int new_socket)
         j["val"]=overall;
         overall=0;
     }
+    stop = chrono::steady_clock::now();
+    if (trace)
+    {
+        overall+=chrono::duration_cast<chrono::microseconds>(stop - start).count();
+    }
     if (!check_error())
     {
         send(new_socket , j.dump().c_str() , strlen(j.dump().c_str()) , 0 );
@@ -771,11 +774,6 @@ void do_calculations(char* buffer, int new_socket)
     else 
     {
         send_error("Server error!",new_socket);
-    }
-    if (trace)
-    {
-        stop = chrono::steady_clock::now();
-        overall+=chrono::duration_cast<chrono::milliseconds>(stop - start).count();
     }
 }
 

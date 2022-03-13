@@ -5,6 +5,7 @@ from rtiCUDA import rcarray
 from rtiCUDA import messageSender
 import time
 from sklearn import datasets
+import cProfile
 
 def takesub(arr : rcarray, x):
     d=dict()

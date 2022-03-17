@@ -660,3 +660,35 @@ void getSubMatrixIntCPU(int* a, int* b, int x1, int y1, int xd, int yd, int x, i
       dim3 Grid_dim(gridSizeWidth1, gridSizeWidth2);
       getSubMatrixIntGPU << < Grid_dim, Block_dim >> > (a, b, x1, y1, xd, yd, x, y);
 }
+
+__global__ void getInverseIntGPU(int* a, int* b, int n)
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+      if (id < n)
+      {
+            if (a[id]>0) b[id]=0;
+            else b[id]=1;
+      }
+}
+
+__global__ void getInverseDoubleGPU(double* a, double* b, int n)
+{
+      int id = blockIdx.x*blockDim.x+threadIdx.x;
+      if (id < n)
+      {
+            if (a[id]>0) b[id]=0;
+            else b[id]=1;
+      }
+}
+
+void getInverseIntCPU(int* a, int* b, int n)
+{
+      int gridSize = (int)ceil((float)n/blockSize);
+      getInverseIntGPU<<<gridSize, blockSize>>>(a, b, n);      
+}
+
+void getInverseDoubleCPU(double* a, double* b, int n)
+{
+      int gridSize = (int)ceil((float)n/blockSize);
+      getInverseDoubleGPU<<<gridSize, blockSize>>>(a, b, n); 
+}

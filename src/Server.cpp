@@ -749,6 +749,48 @@ void do_calculations(char* buffer, int new_socket)
         j["message"]="OK";
         j["id"]=id;
     }
+    else if (nesto["operation"]=="inverse")
+    {
+        UserDictionary* users = UserDictionary::getInstance();
+        SymbolTable* st = users->getSymTable(nesto["userName"]);
+        if (st==nullptr)
+        {
+            send_error("UserName does not exist",new_socket);
+            return;
+        }
+        BasicArray* a = st->getArray(nesto["id"]);
+        if (a==nullptr)
+        {
+            send_error("Array does not exist",new_socket);
+            return;
+        }
+        int length=nesto["length"];
+        int dims[1] = {length};
+        int type;
+        void* d;
+        if (nesto["type"]=="int")
+        {   
+            type=0;
+            d = malloc(sizeof(int)*length);
+        }
+        else if (nesto["type"]=="double")
+        {
+            type=1;
+            d = malloc(sizeof(double)*length);
+        }
+        BasicArray* ba = new BasicArray(type, dims, 1, d);
+        if (nesto["type"]=="int")
+        {
+            getInverseIntCPU((int*)a->d_data,(int*)ba->d_data,length);
+        }
+        else if (nesto["type"]="double")
+        {
+            getInverseDoubleCPU((double*)a->d_data,(double*)ba->d_data,length);
+        }
+        int id = st->addArray(ba);
+        j["message"]="OK";
+        j["id"]=id;
+    }
     else if (nesto["operation"]=="start_tracing")
     {
         trace=true;

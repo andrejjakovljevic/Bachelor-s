@@ -39,6 +39,8 @@ extern void divScalarIntDoubleCPU(int* a, int x, double* b, int n);
 extern void divScalarDoubleDoubleCPU(double* a, double x, double* b, int n);
 extern void getSubMatrixDoubleCPU(double* a, double* b, int x1, int y1, int xd, int yd, int x, int y);
 extern void getSubMatrixIntCPU(int* a, int* b, int x1, int y1, int xd, int yd, int x, int y);
+extern void getInverseIntCPU(int* a, int* b, int n);
+extern void getInverseDoubleCPU(double* a, double* b, int n);
 
 extern int trensize;
 #endif

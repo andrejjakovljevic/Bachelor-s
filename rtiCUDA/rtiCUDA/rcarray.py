@@ -410,3 +410,14 @@ def submatrix(arr : rcarray, x1, y1, xd, yd):
     d["y"]=arr.dims[0]
     resp = messageSender.sendMessage(d)
     return rcarray(resp["id"],arr.type,[yd,xd],2)
+
+def inverse(arr : rcarray):
+    d=dict()
+    if (arr.dim!=2 or arr.dims[0]!=1):
+        raise Exception("Must be a matrix of dimenzsions 1 times x!")
+    d["operation"]="inverse"
+    d["type"]=arr.type
+    d["id"]=arr.id
+    d["length"]=arr.dims[1]
+    resp = messageSender.sendMessage(d)
+    return rcarray(resp["id"],arr.type,[1,arr.dims[1]],2)

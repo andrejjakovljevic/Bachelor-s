@@ -1,5 +1,5 @@
 import math
-import numpy as np
+import cupy as np
 from scipy.sparse import csr_matrix
 import time
 import sys
@@ -70,8 +70,11 @@ cProfile.run('triangle_count_cuda(pd_out,pd_out_t)','stats/tri_count_'+sys.argv[
 k = messageSender.stop_tracing()
 end=time.perf_counter() 
 t1 = end - start
+sol2 = triangle_count_numpy(h1,h2)
+np.cuda.runtime.deviceSynchronize()
 start = time.perf_counter()
 sol2 = triangle_count_numpy(h1,h2)
+np.cuda.runtime.deviceSynchronize()
 end=time.perf_counter() 
 t2 = end - start
 print(sys.argv[1],len(pd_out),len(pd_out_t),k,t1,t2)
